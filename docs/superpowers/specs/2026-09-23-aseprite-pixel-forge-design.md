@@ -41,7 +41,7 @@
 ### 3.1 仓库即 skill
 
 仓库根 = skill 根（`SKILL.md` 位于根目录，符合 Agent Skills 标准）。
-开发于 `F:\Grok_Workspace\01_Projects\aseprite-pixel-forge`；
+开发于本地工作区（任意路径均可）；
 安装 = 同步到 `~/.agents/skills/aseprite-pixel-forge`（pi 与所有遵循标准的 agent 通用发现位置）。
 
 ### 3.2 目录结构
