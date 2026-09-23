@@ -85,15 +85,19 @@ def test_export_gpl(tmp_path):
     text = out.read_text(encoding="utf-8")
     assert text.startswith("GIMP Palette")
     assert "#202020" not in text  # GPL 十进制格式
-    assert "32 32 32" in text and "13 10 18" in text
-    assert text.count("\n") >= 4
+    flat = " ".join(text.split())
+    assert "32 32 32 stone_1" in flat
+    assert "13 10 18 outline" in flat
+    assert "a0a0a0" not in text.lower()
 
 
 def test_write_style_lua(tmp_path):
     out = write_style_lua(MINIMAL, tmp_path / "s.lua")
     text = out.read_text(encoding="utf-8")
-    assert 'stone' in text and '#202020' in text
+    assert 'stone' in text
+    assert 'r=32' in text and 'b=32' in text  # rgba 表形式
     assert '-1' in text and 'selective' in text
+    assert 'default_size = 16' in text
 
 
 def test_iterate_palette():
