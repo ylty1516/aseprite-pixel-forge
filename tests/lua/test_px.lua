@@ -22,6 +22,11 @@ end
 
 -- ---------- disk / rect / line / polygon ----------
 do
+  local mf = px.canvas(8, 8)
+  px.set(mf, 3.7, 4.2, true)
+  check("set-get-float-coords", px.get(mf, 3, 4) == true and px.get(mf, 3.7, 4.2) == true)
+  check("get-float-outside", px.get(mf, 3.7, 99.9) == false)
+
   local m = px.canvas(16, 16)
   px.disk(m, 8, 8, 3, 3)
   local count = px.maskCount(m)

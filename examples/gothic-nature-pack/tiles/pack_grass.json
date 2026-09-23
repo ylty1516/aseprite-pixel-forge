@@ -1,0 +1,84 @@
+{
+  "recipe": "tile",
+  "prefix": "grass",
+  "style": "left-hand-of-god",
+  "exported": [
+    "grass_01.png",
+    "grass_02.png"
+  ],
+  "sources": [
+    "tile_001.aseprite",
+    "tile_003.aseprite",
+    "tile_004.aseprite",
+    "tile_007.aseprite",
+    "tile_010.aseprite",
+    "tile_012.aseprite",
+    "tile_015.aseprite"
+  ],
+  "sheet": {
+    "png": "grass_sheet.png",
+    "json": "grass_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "tile_001",
+      "seed": 7000,
+      "params": {
+        "density": 0.3225,
+        "kind": "grass",
+        "moss": 0.5779,
+        "palette": "stone_warm"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 4,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 52.1,
+        "sha256": "f32f95cfb5fdfff40ab877a6674dedb95a53a58954cd8839d5f328e20fa82a57"
+      }
+    },
+    {
+      "id": "tile_003",
+      "seed": 7002,
+      "params": {
+        "density": 0.5592,
+        "kind": "grass",
+        "moss": 0.8957,
+        "palette": "stone_warm"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 4,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 54.3,
+        "sha256": "54c727e4a8ca07ab4ed544713a4aa4ba58fbbb888db47ed0787492db1b926e26"
+      }
+    }
+  ]
+}

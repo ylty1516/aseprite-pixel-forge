@@ -1,0 +1,263 @@
+{
+  "recipe": "rock",
+  "prefix": "rock",
+  "style": "left-hand-of-god",
+  "exported": [
+    "rock_01.png",
+    "rock_02.png",
+    "rock_03.png",
+    "rock_04.png",
+    "rock_05.png",
+    "rock_06.png",
+    "rock_07.png",
+    "rock_08.png"
+  ],
+  "sources": [
+    "rock_001.aseprite",
+    "rock_002.aseprite",
+    "rock_003.aseprite",
+    "rock_004.aseprite",
+    "rock_005.aseprite",
+    "rock_007.aseprite",
+    "rock_012.aseprite",
+    "rock_015.aseprite"
+  ],
+  "sheet": {
+    "png": "rock_sheet.png",
+    "json": "rock_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "rock_001",
+      "seed": 5000,
+      "params": {
+        "angularity": 0.2432,
+        "cracks": false,
+        "moss": 0.4553,
+        "palette": "stone_warm",
+        "secondary": false,
+        "size": "large"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 240,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 56.3,
+        "sha256": "376c4d79bcf67ef7b5a9f94819cf1d5cde8502ee2378d4303cb1d2c402b0341d"
+      }
+    },
+    {
+      "id": "rock_002",
+      "seed": 5001,
+      "params": {
+        "angularity": 0.3781,
+        "cracks": false,
+        "moss": 0.7386,
+        "palette": "stone",
+        "secondary": true,
+        "size": "large"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 267,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 50.2,
+        "sha256": "84547c370b1be419694fe72c3e42df49c5d2753b5543a13f0f289f5346795471"
+      }
+    },
+    {
+      "id": "rock_003",
+      "seed": 5002,
+      "params": {
+        "angularity": 0.4051,
+        "cracks": true,
+        "moss": 0.8545,
+        "palette": "stone",
+        "secondary": false,
+        "size": "large"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 190,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 52.2,
+        "sha256": "ad1eb3d0c80c6d34cd878b76828fc24331e50c4322951b3a4b852fa3e1dccb53"
+      }
+    },
+    {
+      "id": "rock_004",
+      "seed": 5003,
+      "params": {
+        "angularity": 0.2138,
+        "cracks": false,
+        "moss": 0.285,
+        "palette": "stone_warm",
+        "secondary": false,
+        "size": "large"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 273,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 55.3,
+        "sha256": "6a402b1b7f95c8f61e9829f08ae680e20eb661df072199183e474daa28ade02a"
+      }
+    },
+    {
+      "id": "rock_005",
+      "seed": 5004,
+      "params": {
+        "angularity": 0.2819,
+        "cracks": true,
+        "moss": 0.6044,
+        "palette": "stone",
+        "secondary": true,
+        "size": "small"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 70,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 44.1,
+        "sha256": "6398ee3eb99fe7dcefe0e0b8cc80e8cd4f57f189989b549f44e5a5c81ec9a613"
+      }
+    },
+    {
+      "id": "rock_007",
+      "seed": 5006,
+      "params": {
+        "angularity": 0.2174,
+        "cracks": false,
+        "moss": 0.6426,
+        "palette": "stone",
+        "secondary": true,
+        "size": "large"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 275,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 53.5,
+        "sha256": "88c25f3404d4ff37d27fc5bdcfa99ef98ebb335e76f81e2ef23fc47b73c78c8a"
+      }
+    },
+    {
+      "id": "rock_012",
+      "seed": 5011,
+      "params": {
+        "angularity": 0.4202,
+        "cracks": false,
+        "moss": 0.1712,
+        "palette": "stone",
+        "secondary": true,
+        "size": "small"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 54,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 44.9,
+        "sha256": "1073e4cd16c90fccf3f65e376b328f546cdac8ab4ca194ec1b1ca052a62e05a3"
+      }
+    },
+    {
+      "id": "rock_015",
+      "seed": 5014,
+      "params": {
+        "angularity": 0.2132,
+        "cracks": true,
+        "moss": 0.2937,
+        "palette": "stone",
+        "secondary": true,
+        "size": "medium"
+      },
+      "metrics": {
+        "size": [
+          34,
+          28
+        ],
+        "pixels": 157,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 47.0,
+        "sha256": "7f9864219e9b2ac393dd99a04e4d738074afed06e05dbfbd1170b2bbc62b0f8f"
+      }
+    }
+  ]
+}

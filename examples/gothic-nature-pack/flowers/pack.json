@@ -1,0 +1,249 @@
+{
+  "recipe": "flower",
+  "prefix": "flower",
+  "style": "left-hand-of-god",
+  "exported": [
+    "flower_01.png",
+    "flower_02.png",
+    "flower_03.png",
+    "flower_04.png",
+    "flower_05.png",
+    "flower_06.png",
+    "flower_07.png",
+    "flower_08.png"
+  ],
+  "sources": [
+    "flower_004.aseprite",
+    "flower_005.aseprite",
+    "flower_006.aseprite",
+    "flower_011.aseprite",
+    "flower_012.aseprite",
+    "flower_013.aseprite",
+    "flower_015.aseprite",
+    "flower_016.aseprite"
+  ],
+  "sheet": {
+    "png": "flower_sheet.png",
+    "json": "flower_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "flower_004",
+      "seed": 6003,
+      "params": {
+        "count": 5,
+        "glow": false,
+        "height": 12,
+        "kind": "tuft",
+        "palette": "moss"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 96,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 46.7,
+        "sha256": "e8204de1b2c6273cf8b7798b522d1e70891949e571fca8405f841a6ae244f9b7"
+      }
+    },
+    {
+      "id": "flower_005",
+      "seed": 6004,
+      "params": {
+        "count": 7,
+        "glow": false,
+        "height": 15,
+        "kind": "lily",
+        "palette": "moss"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 154,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 55.1,
+        "sha256": "e8e02142aaecf1d1bdac94c5ce01171b6bd74dddec67a917cb2cf9a2be970e7f"
+      }
+    },
+    {
+      "id": "flower_006",
+      "seed": 6005,
+      "params": {
+        "count": 4,
+        "glow": true,
+        "height": 14,
+        "kind": "fern",
+        "palette": "moss"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 92,
+        "colors": 6,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 35.3,
+        "sha256": "3be013bfc2c16fd72a0d6d16b0fe75936dcb472594e9400fa61c1d00171557ee"
+      }
+    },
+    {
+      "id": "flower_011",
+      "seed": 6010,
+      "params": {
+        "count": 5,
+        "glow": false,
+        "height": 11,
+        "kind": "tuft",
+        "palette": "foliage_dark"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 87,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 49.2,
+        "sha256": "d631aee669f9e5a888b58f14ed782baa5ae7627ec3735e9521a91fabb653241d"
+      }
+    },
+    {
+      "id": "flower_012",
+      "seed": 6011,
+      "params": {
+        "count": 5,
+        "glow": true,
+        "height": 14,
+        "kind": "fern",
+        "palette": "moss"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 90,
+        "colors": 6,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 32.1,
+        "sha256": "122314e5af4f5901223da15e7a3a8fed893cd7cf8621d2cd046fb5640078225e"
+      }
+    },
+    {
+      "id": "flower_013",
+      "seed": 6012,
+      "params": {
+        "count": 7,
+        "glow": false,
+        "height": 8,
+        "kind": "lily",
+        "palette": "foliage_dead"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 99,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 54.5,
+        "sha256": "0f2b9e6e5391469a24a3d87b189cda88e4cf61b0da99c01c88fe044b17f93a1e"
+      }
+    },
+    {
+      "id": "flower_015",
+      "seed": 6014,
+      "params": {
+        "count": 7,
+        "glow": true,
+        "height": 12,
+        "kind": "fern",
+        "palette": "foliage_dead"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 82,
+        "colors": 6,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 39.6,
+        "sha256": "6860582679157aed67781602c281943f9504fd6deb7cb050d397765171e9bf79"
+      }
+    },
+    {
+      "id": "flower_016",
+      "seed": 6015,
+      "params": {
+        "count": 7,
+        "glow": true,
+        "height": 11,
+        "kind": "tuft",
+        "palette": "foliage_dead"
+      },
+      "metrics": {
+        "size": [
+          26,
+          24
+        ],
+        "pixels": 104,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 52.6,
+        "sha256": "52c17a27f8d459497cbd24801f510e8dfe19c9c69a39d3b81339cb6a6b724b93"
+      }
+    }
+  ]
+}

@@ -8,13 +8,19 @@ from pathlib import Path
 from PIL import Image
 
 
-def export_pngs(png_paths, out_dir, prefix: str = "sprite") -> list:
+def export_pngs(png_paths, out_dir, prefix: str = "sprite", trim: bool = True) -> list:
+    """复制导出为规范命名；默认裁剪透明边（游戏即用）。"""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     exported = []
     for i, src in enumerate(png_paths, start=1):
         dst = out / f"{prefix}_{i:02d}.png"
-        dst.write_bytes(Path(src).read_bytes())
+        img = Image.open(src).convert("RGBA")
+        if trim:
+            bbox = img.getchannel("A").getbbox()
+            if bbox:
+                img = img.crop(bbox)
+        img.save(dst)
         exported.append(dst)
     return exported
 

@@ -1,0 +1,267 @@
+{
+  "recipe": "tree",
+  "prefix": "tree",
+  "style": "left-hand-of-god",
+  "exported": [
+    "tree_01.png",
+    "tree_02.png",
+    "tree_03.png",
+    "tree_04.png",
+    "tree_05.png",
+    "tree_06.png",
+    "tree_07.png",
+    "tree_08.png"
+  ],
+  "sources": [
+    "tree_001.aseprite",
+    "tree_002.aseprite",
+    "tree_003.aseprite",
+    "tree_004.aseprite",
+    "tree_006.aseprite",
+    "tree_007.aseprite",
+    "tree_013.aseprite",
+    "tree_016.aseprite"
+  ],
+  "sheet": {
+    "png": "tree_sheet.png",
+    "json": "tree_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "tree_001",
+      "seed": 5000,
+      "params": {
+        "asymmetry": 0.2331,
+        "canopy": 0.4849,
+        "height": 40,
+        "kind": "broadleaf",
+        "lean": 0.0005,
+        "moss": 0.8394
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 970,
+        "colors": 13,
+        "empty": false,
+        "edges": [
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 52.6,
+        "sha256": "74356c47496186f64a4ca831301ba7b6bac6fa8bbdf8d1bda29993b38370e4e3"
+      }
+    },
+    {
+      "id": "tree_002",
+      "seed": 5001,
+      "params": {
+        "asymmetry": 0.5702,
+        "canopy": 0.4385,
+        "height": 29,
+        "kind": "broadleaf",
+        "lean": -0.1118,
+        "moss": 0.5729
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 508,
+        "colors": 13,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 50.8,
+        "sha256": "c805a442d19186e8cdee17de28f92eb20ceebf2e0ca6c6029a74cd9f6801e847"
+      }
+    },
+    {
+      "id": "tree_003",
+      "seed": 5002,
+      "params": {
+        "asymmetry": 0.6378,
+        "canopy": 0.3267,
+        "height": 27,
+        "kind": "broadleaf",
+        "lean": 0.0785,
+        "moss": 0.7175
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 268,
+        "colors": 12,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 41.8,
+        "sha256": "9f772dbd4847d81daf09172761d94463065805e9c39be7d895fc70bf20fa9402"
+      }
+    },
+    {
+      "id": "tree_004",
+      "seed": 5003,
+      "params": {
+        "asymmetry": 0.1595,
+        "canopy": 0.475,
+        "height": 35,
+        "kind": "conifer",
+        "lean": -0.0368,
+        "moss": 0.7386
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 780,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 50.6,
+        "sha256": "a2b12b332cf5a345c350923af812515bddadcea9a31a431a2217136b1ac28677"
+      }
+    },
+    {
+      "id": "tree_006",
+      "seed": 5005,
+      "params": {
+        "asymmetry": 0.2147,
+        "canopy": 0.2665,
+        "height": 40,
+        "kind": "dead",
+        "lean": -0.0483,
+        "moss": 0.1846
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 202,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 33.3,
+        "sha256": "6d2ff8db228a73d21bfdf32f7a4eff2a6f711b463ddf651ae8a8c657d1f7925b"
+      }
+    },
+    {
+      "id": "tree_007",
+      "seed": 5006,
+      "params": {
+        "asymmetry": 0.1685,
+        "canopy": 0.4763,
+        "height": 30,
+        "kind": "broadleaf",
+        "lean": 0.0726,
+        "moss": 0.9375
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 570,
+        "colors": 12,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 51.7,
+        "sha256": "7890f9788199ca5c57c768e6bfc56dad5410657db129fb8af416101faf48d6d7"
+      }
+    },
+    {
+      "id": "tree_013",
+      "seed": 5012,
+      "params": {
+        "asymmetry": 0.064,
+        "canopy": 0.4947,
+        "height": 37,
+        "kind": "conifer",
+        "lean": 0.0293,
+        "moss": 0.7844
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 826,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 49.2,
+        "sha256": "a3ad5442438e6dafe29ed2fa0ddc1c76e02f3cfddf80ffb07a7d903dc6fa5890"
+      }
+    },
+    {
+      "id": "tree_016",
+      "seed": 5015,
+      "params": {
+        "asymmetry": 0.3715,
+        "canopy": 0.5029,
+        "height": 39,
+        "kind": "broadleaf",
+        "lean": -0.146,
+        "moss": 0.7236
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 1052,
+        "colors": 13,
+        "empty": false,
+        "edges": [
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 55.9,
+        "sha256": "c1b9c38aeb4113ffed840c27cb84ec7eeb3b63fc12ba3159b8dedcdd198e2a64"
+      }
+    }
+  ]
+}

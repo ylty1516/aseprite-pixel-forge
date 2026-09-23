@@ -349,6 +349,7 @@ def cmd_export(args) -> int:
     build = Path(args.build)
     manifest = load_manifest(build)
     cands_all = manifest["candidates"]
+    prefix = args.prefix or manifest["recipe"]
     style_file = Path(args.style).resolve() if args.style else Path(manifest["style"])
     style = load_style(style_file)
 
@@ -376,7 +377,7 @@ def cmd_export(args) -> int:
 
     out = Path(args.out)
     png_paths = [c["files"]["png"] for c in picks if c.get("files", {}).get("png")]
-    exported = export_pngs(png_paths, out, prefix=manifest["recipe"])
+    exported = export_pngs(png_paths, out, prefix=prefix)
 
     src_dir = out / "source_aseprite"
     src_dir.mkdir(parents=True, exist_ok=True)
@@ -388,11 +389,12 @@ def cmd_export(args) -> int:
     sheet_info = None
     if args.sheet and exported:
         sheet_info = export_sheet(
-            [str(p) for p in exported], out / f"{manifest['recipe']}_sheet.png",
-            out / f"{manifest['recipe']}_sheet.json", columns=args.sheet_cols)
+            [str(p) for p in exported], out / f"{prefix}_sheet.png",
+            out / f"{prefix}_sheet.json", columns=args.sheet_cols)
 
     pack = {
         "recipe": manifest["recipe"],
+        "prefix": prefix,
         "style": style["name"],
         "exported": [str(p.name) for p in exported],
         "sources": sorted(p.name for p in src_dir.iterdir()),
@@ -403,12 +405,20 @@ def cmd_export(args) -> int:
             for c in picks
         ],
     }
-    (out / "pack.json").write_text(
+    pack_path = out / "pack.json"
+    if pack_path.exists():
+        try:
+            existing = json.loads(pack_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            existing = None
+        if isinstance(existing, dict) and existing.get("prefix") not in (None, prefix):
+            pack_path = out / f"pack_{prefix}.json"
+    pack_path.write_text(
         json.dumps(pack, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"✓ 已导出 {len(exported)} 图 → {out}")
     if sheet_info:
         print(f"✓ 图集：{sheet_info[0]} + {sheet_info[1]}")
-    print(f"✓ 清单：{out / 'pack.json'}")
+    print(f"✓ 清单：{pack_path}")
     return 0
 
 
@@ -545,6 +555,7 @@ def main(argv=None) -> int:
     p.add_argument("build")
     p.add_argument("--out", required=True)
     p.add_argument("--pick", default="", help="候选序号，如 1,5,9；缺省=全部成功候选")
+    p.add_argument("--prefix", help="导出文件前缀（默认=配方名）")
     p.add_argument("--sheet", action="store_true")
     p.add_argument("--sheet-cols", type=int, default=8)
     p.add_argument("--style")

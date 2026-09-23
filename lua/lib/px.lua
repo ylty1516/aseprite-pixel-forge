@@ -51,11 +51,13 @@ function px.inside(m, x, y)
 end
 
 function px.get(m, x, y)
+  x, y = math.floor(x), math.floor(y)
   if not px.inside(m, x, y) then return false end
   return m[y][x] and true or false
 end
 
 function px.set(m, x, y, v)
+  x, y = math.floor(x), math.floor(y)
   if px.inside(m, x, y) then m[y][x] = v and true or false end
 end
 
@@ -438,11 +440,13 @@ function px.clusterJitter(img, m, ramp, rng, opts)
 end
 
 -- 点缀（苔藓/地衣/杂色），小簇绘制，等级取 opts.levels
+-- opts.filter(x, y) 可限定区域（如仅顶部）；opts.bias_top 简化玩法：偏向 y 较小的区域
 function px.speckle(img, m, ramp, rng, opts)
   opts = opts or {}
   local count = opts.count or 8
   local size = opts.size or 1
   local levels = opts.levels or {2, 3}
+  local filter = opts.filter
   local pixels = {}
   for y = 0, m.h - 1 do
     for x = 0, m.w - 1 do
@@ -454,19 +458,22 @@ function px.speckle(img, m, ramp, rng, opts)
   while placed < count and tries < count * 25 do
     tries = tries + 1
     local p = pixels[px.rngInt(rng, 1, #pixels)]
-    local level = px.pick(rng, levels)
-    local c = px.rampColor(ramp, level)
-    local any = false
-    for oy = 0, size - 1 do
-      for ox = 0, size - 1 do
-        local x, y = p[1] + ox, p[2] + oy
-        if px.inside(m, x, y) and m[y][x] then
-          img:putPixel(x, y, c)
-          any = true
+    local okp = (not filter) or filter(p[1], p[2])
+    if okp then
+      local level = px.pick(rng, levels)
+      local c = px.rampColor(ramp, level)
+      local any = false
+      for oy = 0, size - 1 do
+        for ox = 0, size - 1 do
+          local x, y = p[1] + ox, p[2] + oy
+          if px.inside(m, x, y) and m[y][x] then
+            img:putPixel(x, y, c)
+            any = true
+          end
         end
       end
+      if any then placed = placed + 1 end
     end
-    if any then placed = placed + 1 end
   end
 end
 

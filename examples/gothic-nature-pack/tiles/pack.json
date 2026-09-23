@@ -1,0 +1,239 @@
+{
+  "recipe": "tile",
+  "prefix": "tile",
+  "style": "left-hand-of-god",
+  "exported": [
+    "tile_01.png",
+    "tile_02.png",
+    "tile_03.png",
+    "tile_04.png",
+    "tile_05.png",
+    "tile_06.png",
+    "tile_07.png"
+  ],
+  "sources": [
+    "tile_001.aseprite",
+    "tile_003.aseprite",
+    "tile_004.aseprite",
+    "tile_007.aseprite",
+    "tile_010.aseprite",
+    "tile_012.aseprite",
+    "tile_015.aseprite"
+  ],
+  "sheet": {
+    "png": "tile_sheet.png",
+    "json": "tile_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "tile_001",
+      "seed": 6000,
+      "params": {
+        "density": 0.1739,
+        "kind": "dirt",
+        "moss": 0.7263,
+        "palette": "stone_warm"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 4,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 45.4,
+        "sha256": "a675260ed3d23c74ac994c8e8ee839a7e45b677ccabfabdb3b2e1f5ed410a3f9"
+      }
+    },
+    {
+      "id": "tile_003",
+      "seed": 6002,
+      "params": {
+        "density": 0.7659,
+        "kind": "grass",
+        "moss": 0.5176,
+        "palette": "stone"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 4,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 55.9,
+        "sha256": "82cc058f320b3065b5630243a61a632d5045501bd8e61b1be9d96f26bcf8ac35"
+      }
+    },
+    {
+      "id": "tile_004",
+      "seed": 6003,
+      "params": {
+        "density": 0.92,
+        "kind": "cobble",
+        "moss": 0.65,
+        "palette": "stone_warm"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 7,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 58.4,
+        "sha256": "8aa5b8c219f7e5fc1c9f18e38164c31e76404ebbef2b19b99debc638f555b7cc"
+      }
+    },
+    {
+      "id": "tile_007",
+      "seed": 6006,
+      "params": {
+        "density": 0.0465,
+        "kind": "stone_floor",
+        "moss": 0.1521,
+        "palette": "stone"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 7,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 55.9,
+        "sha256": "a7fcde195b5126fad2e89c0286a8a8b9875cf251f36f939e8b21b1d8a27d72ba"
+      }
+    },
+    {
+      "id": "tile_010",
+      "seed": 6009,
+      "params": {
+        "density": 0.5701,
+        "kind": "dirt",
+        "moss": 0.7347,
+        "palette": "stone"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 47.7,
+        "sha256": "70e1568258dc6344cd16596b2d02b0121db43960f3e3f1b95392a51d33d55104"
+      }
+    },
+    {
+      "id": "tile_012",
+      "seed": 6011,
+      "params": {
+        "density": 0.2717,
+        "kind": "stone_floor",
+        "moss": 0.4307,
+        "palette": "stone_warm"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 7,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 59.0,
+        "sha256": "1e05a88510fca3e099a9a5ee9a94d3cdcaf354015fb34b69c1b94485833aa2b8"
+      }
+    },
+    {
+      "id": "tile_015",
+      "seed": 6014,
+      "params": {
+        "density": 0.5599,
+        "kind": "cobble",
+        "moss": 0.5854,
+        "palette": "stone"
+      },
+      "metrics": {
+        "size": [
+          32,
+          32
+        ],
+        "pixels": 1024,
+        "colors": 7,
+        "empty": false,
+        "edges": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 56.7,
+        "sha256": "d3e5f2d7451e80481e35a06acf4518c5992236b9cb96fd6065c47089839ad7f5"
+      }
+    }
+  ]
+}

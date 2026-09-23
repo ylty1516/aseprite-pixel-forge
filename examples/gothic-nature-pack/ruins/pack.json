@@ -1,0 +1,199 @@
+{
+  "recipe": "ruin",
+  "prefix": "ruin",
+  "style": "left-hand-of-god",
+  "exported": [
+    "ruin_01.png",
+    "ruin_02.png",
+    "ruin_03.png",
+    "ruin_04.png",
+    "ruin_05.png",
+    "ruin_06.png",
+    "ruin_07.png"
+  ],
+  "sources": [
+    "ruin_001.aseprite",
+    "ruin_004.aseprite",
+    "ruin_005.aseprite",
+    "ruin_008.aseprite",
+    "ruin_013.aseprite",
+    "ruin_014.aseprite",
+    "ruin_016.aseprite"
+  ],
+  "sheet": {
+    "png": "ruin_sheet.png",
+    "json": "ruin_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "ruin_001",
+      "seed": 6000,
+      "params": {
+        "decay": 0.1739,
+        "kind": "column",
+        "moss": 0.7263
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 612,
+        "colors": 7,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 48.1,
+        "sha256": "34505ceda92f10ddbf06a2e5a81c3eae560720d8b8ae506e2107c4095737ffa2"
+      }
+    },
+    {
+      "id": "ruin_004",
+      "seed": 6003,
+      "params": {
+        "decay": 0.92,
+        "kind": "bricks",
+        "moss": 0.65
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 394,
+        "colors": 9,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 48.7,
+        "sha256": "b790c882f8f2757527a93ab2651686c9e46d5eab5a1741d91ab0614cd1806700"
+      }
+    },
+    {
+      "id": "ruin_005",
+      "seed": 6004,
+      "params": {
+        "decay": 0.5044,
+        "kind": "bricks",
+        "moss": 0.9017
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 327,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "right"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 45.7,
+        "sha256": "2d21a1d3cdc69003109524ee0b21d187fa77eb6c94d73f8b7a47584092eaabb9"
+      }
+    },
+    {
+      "id": "ruin_008",
+      "seed": 6007,
+      "params": {
+        "decay": 0.3647,
+        "kind": "arch",
+        "moss": 0.3329
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 283,
+        "colors": 8,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 42.4,
+        "sha256": "0c3d3409f0ff413bd0630a895aaa677a81398f3534d8b3cb5a88d703e7600a4a"
+      }
+    },
+    {
+      "id": "ruin_013",
+      "seed": 6012,
+      "params": {
+        "decay": 0.8231,
+        "kind": "arch",
+        "moss": 0.601
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 267,
+        "colors": 8,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 43.4,
+        "sha256": "269dd5d40da71090d669048e950f02a87f010c372cb5bba3885dba195d8edfc8"
+      }
+    },
+    {
+      "id": "ruin_014",
+      "seed": 6013,
+      "params": {
+        "decay": 0.6702,
+        "kind": "column",
+        "moss": 0.8784
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 563,
+        "colors": 7,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 50.2,
+        "sha256": "f19f9d4016a59c5ced504b638e9a98370e88a690c4961ae51b8f916310842f58"
+      }
+    },
+    {
+      "id": "ruin_016",
+      "seed": 6015,
+      "params": {
+        "decay": 0.8041,
+        "kind": "column",
+        "moss": 0.9518
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 629,
+        "colors": 8,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 45.1,
+        "sha256": "8ac5ce2adf781fd236636e9592d48065a8f0b87b71cfca855527e292584026e7"
+      }
+    }
+  ]
+}

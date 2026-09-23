@@ -1,0 +1,255 @@
+{
+  "recipe": "bush",
+  "prefix": "bush",
+  "style": "left-hand-of-god",
+  "exported": [
+    "bush_01.png",
+    "bush_02.png",
+    "bush_03.png",
+    "bush_04.png",
+    "bush_05.png",
+    "bush_06.png",
+    "bush_07.png",
+    "bush_08.png"
+  ],
+  "sources": [
+    "bush_001.aseprite",
+    "bush_002.aseprite",
+    "bush_004.aseprite",
+    "bush_005.aseprite",
+    "bush_010.aseprite",
+    "bush_011.aseprite",
+    "bush_013.aseprite",
+    "bush_016.aseprite"
+  ],
+  "sheet": {
+    "png": "bush_sheet.png",
+    "json": "bush_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "bush_001",
+      "seed": 5000,
+      "params": {
+        "berries": true,
+        "glow": false,
+        "palette": "foliage_dark",
+        "size": 5.4433,
+        "twigs": true
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 112,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 48.7,
+        "sha256": "65a4abe92683bbb7e0275b96f1ebc2a6b4911b2f74a260db9f3aa117edcb2702"
+      }
+    },
+    {
+      "id": "bush_002",
+      "seed": 5001,
+      "params": {
+        "berries": false,
+        "glow": false,
+        "palette": "foliage_dead",
+        "size": 8.1151,
+        "twigs": false
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 134,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 60.3,
+        "sha256": "37bf8911365af75e28e961f641399589f95206a32037409ae493c8485797453e"
+      }
+    },
+    {
+      "id": "bush_004",
+      "seed": 5003,
+      "params": {
+        "berries": true,
+        "glow": false,
+        "palette": "foliage_dark",
+        "size": 7.1379,
+        "twigs": false
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 159,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 50.4,
+        "sha256": "d5be3a79f75edf5da4d1bfd053102d73dd6bf5410feb6dffd0fd7fd2927374be"
+      }
+    },
+    {
+      "id": "bush_005",
+      "seed": 5004,
+      "params": {
+        "berries": true,
+        "glow": true,
+        "palette": "foliage_dead",
+        "size": 7.3348,
+        "twigs": true
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 160,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 60.1,
+        "sha256": "ca30ff8e2bb3d9be40fd1d38b68cbbf4e49dda7b67e386651f4c92cbe5f12224"
+      }
+    },
+    {
+      "id": "bush_010",
+      "seed": 5009,
+      "params": {
+        "berries": false,
+        "glow": true,
+        "palette": "moss",
+        "size": 7.9768,
+        "twigs": false
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 156,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 53.6,
+        "sha256": "872dc8eb485c003a6bf1a6d22c4869e80f354d2fce888b5848fc17ead6cc9c38"
+      }
+    },
+    {
+      "id": "bush_011",
+      "seed": 5010,
+      "params": {
+        "berries": false,
+        "glow": true,
+        "palette": "moss",
+        "size": 7.5876,
+        "twigs": false
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 173,
+        "colors": 6,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 55.8,
+        "sha256": "0eb1290c20883cb7c15470c41cf411478ca4b0fc287ec540cda45fa35d47358d"
+      }
+    },
+    {
+      "id": "bush_013",
+      "seed": 5012,
+      "params": {
+        "berries": true,
+        "glow": false,
+        "palette": "foliage_dark",
+        "size": 7.2143,
+        "twigs": false
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 109,
+        "colors": 8,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 54.8,
+        "sha256": "63e31f714e27ec20ddd0ef76b3e0501695c1ab6528da65c290700ad46bfe7f45"
+      }
+    },
+    {
+      "id": "bush_016",
+      "seed": 5015,
+      "params": {
+        "berries": true,
+        "glow": false,
+        "palette": "foliage_dark",
+        "size": 8.8222,
+        "twigs": true
+      },
+      "metrics": {
+        "size": [
+          30,
+          24
+        ],
+        "pixels": 206,
+        "colors": 9,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 53.7,
+        "sha256": "5a5f90109810c68bf3d5e00f5fbc4fdf01cc4b86abb56124b514858b7893c277"
+      }
+    }
+  ]
+}
