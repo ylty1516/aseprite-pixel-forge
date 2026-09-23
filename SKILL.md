@@ -53,6 +53,20 @@ python scripts/forge.py export build/tree-r2 --out out/tree --pick 1,3 --sheet
 `tile`（草地/泥路/石板路/石地）· `ruin`（断柱/砖堆/拱残件）· `smoke`（调试小球）
 ——全部可通过 `--param` 固定参数定向生成。
 
+### 帧动画（树的/灌木/花草）
+
+树、灌木、花草配方支持 `frames` 参数输出**多帧动画**（每帧轮廓真实变化）：
+
+```bash
+python scripts/forge.py gen tree --style styles/left-hand-of-god.json \
+    --out build/tree-anim --count 8 --seed 2000 --param frames=4 --param fps=8
+python scripts/forge.py export build/tree-anim --out out --pick 1,3 --gif   # 导出循环 GIF
+```
+
+- `frames`（1–6，非采样参数，需显式指定）；`fps` 为保留参数（默认 8，写入 .aseprite 帧时长）；
+- 关键帧原则：同一 seed 逐帧重建基础形态，仅用 `ctx.phase` 叠加帧间差异 → 循环无缝、确定性保持；
+- 重新生成某个已选定候选为动画版：`gen ... --params-file <从 pack.json 提取的 {seed,params}> --param frames=4`。
+
 ## 扩展新品类（建筑/人物等）
 
 在 `lua/recipes/<category>/` 新建配方：声明 `params` + 实现 `generate(ctx)`，

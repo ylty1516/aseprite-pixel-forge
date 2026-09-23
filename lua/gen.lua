@@ -85,26 +85,52 @@ local function run()
     end
   end
 
-  local rng = px.rng(seed)
-  local ctx = {
-    style = style, params = merged, rng = rng, seed = seed,
-    size = { w, h }, px = px,
-  }
-  local out = recipe.generate(ctx)
-  local img = out.img or out
+  -- 多帧动画：每帧用同一 seed 重建基础形态，再用 ctx.phase 叠加帧间差异
+  local frames = math.floor(px.tonum(P["frames"] or merged.frames or 1, 1))
+  frames = math.max(1, math.min(8, frames))
+  local fps = px.tonum(P["fps"] or merged.fps or 8, 8)
+  if fps <= 0 then fps = 8 end
 
-  local png_path = outdir .. "/" .. name .. ".png"
+  local images = {}
+  for f = 1, frames do
+    local rng = px.rng(seed)
+    local ctx = {
+      style = style, params = merged, rng = rng, seed = seed,
+      size = { w, h }, px = px,
+      frame = f, frames = frames,
+      phase = (f - 1) / frames * math.pi * 2,
+    }
+    local out = recipe.generate(ctx)
+    images[f] = out.img or out
+  end
+
+  local png_paths = {}
+  for f = 1, frames do
+    local fname = (f == 1) and (name .. ".png")
+      or string.format("%s_f%d.png", name, f)
+    local p = outdir .. "/" .. fname
+    px.save(images[f], p)
+    png_paths[f] = p
+  end
+
   local ase_path = outdir .. "/" .. name .. ".aseprite"
-  px.save(img, png_path)
-
   local sprite = Sprite(w, h, ColorMode.RGB)
   sprite.layers[1].name = recipe.name or "art"
-  sprite:newCel(sprite.layers[1], 1, img, Point(0, 0))
+  for f = 1, frames do
+    if f > 1 then sprite:newEmptyFrame() end
+    sprite:newCel(sprite.layers[1], f, images[f], Point(0, 0))
+    sprite.frames[f].duration = 1.0 / fps
+  end
   sprite:saveCopyAs(ase_path)
 
   px.emit({
     ok = true, name = name, seed = seed,
-    files = { aseprite = ase_path, png = png_path },
+    frames = frames, fps = fps,
+    files = {
+      aseprite = ase_path,
+      png = png_paths[1],
+      png_frames = png_paths,
+    },
     params = merged,
   })
 end

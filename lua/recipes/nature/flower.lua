@@ -91,6 +91,16 @@ local function generate(ctx)
     end
   end
 
+  -- 多帧：叶片弯曲摆动（根部固定，梢部摆动最大；花/苔随叶移动）
+  if (ctx.params.frames or 1) > 1 then
+    local amp = 2.0
+    if p.kind == "fern" then amp = 1.0 end
+    if p.kind == "tuft" then amp = 2.2 end
+    img, m = px.shear(img, m, {
+      amp = amp, pivot = ground - 1, phase = ctx.phase or 0, falloff = 1.5,
+    })
+  end
+
   px.outline(img, m, ctx.style.outline.color, {
     policy = ctx.style.outline.policy, light = light, rng = rng,
   })
@@ -108,6 +118,7 @@ return {
     palette = {type = "choice", values = {"foliage_dark", "moss", "foliage_dead"},
                default = "foliage_dark"},
     glow = {type = "bool", default = false},
+    frames = {type = "int", min = 1, max = 6, default = 1, sample = false},
   },
   generate = generate,
 }

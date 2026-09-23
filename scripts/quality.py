@@ -110,6 +110,10 @@ def mutate_params(parent: dict, specs: dict, rng: random.Random,
     """在参数范围内对父本参数做确定性扰动（排序遍历保确定性）。"""
     out = {}
     for key, spec in sorted(specs.items()):
+        if spec.get("sample") is False:
+            # 非采样参数（frames/fps 等）保持父本值
+            out[key] = parent.get(key, spec.get("default"))
+            continue
         v = parent.get(key, spec.get("default"))
         t = spec.get("type")
         if t in ("int", "float"):

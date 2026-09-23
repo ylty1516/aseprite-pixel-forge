@@ -220,6 +220,43 @@ do
   check("carve-draws", img:getPixel(7, 7) == ramp[1] or img:getPixel(8, 8) == ramp[1])
 end
 
+-- ---------- shear（行级弯曲） ----------
+do
+  -- 竖线（宽 1px，高 12）测试：根部不动、顶部偏移、行宽保持
+  local m = px.canvas(16, 12)
+  for y = 0, 11 do px.set(m, 8, y, true) end
+  local img = px.newImage(16, 12)
+  local c = px.rgba(200, 100, 50)
+  px.flatten(img, m, {c}, 1)
+
+  -- 相位 0：完全不动
+  local out0, om0 = px.shear(img, m, {amp = 3, pivot = 11, phase = 0})
+  check("shear-phase0-identity", px.get(om0, 8, 0) and px.get(om0, 8, 11))
+
+  -- 相位 π/2：顶部向右偏移 ~amp
+  local out1, om1 = px.shear(img, m, {amp = 3, pivot = 11, phase = math.pi / 2})
+  local top_x, top_y = nil, nil
+  for x = 0, 15 do if px.get(om1, x, 0) then top_x = x end end
+  check("shear-top-shifted", top_x ~= nil and top_x > 8, "top_x=" .. tostring(top_x))
+  check("shear-root-fixed", px.get(om1, 8, 11) == true)
+  -- 每行宽度仍为 1px
+  local widths_ok = true
+  for y = 0, 11 do
+    local n = 0
+    for x = 0, 15 do if px.get(om1, x, y) then n = n + 1 end end
+    if n ~= 1 then widths_ok = false end
+  end
+  check("shear-width-preserved", widths_ok)
+  check("shear-color-carried",
+    out1:getPixel(top_x or 0, 0) == c)
+
+  -- 反向相位偏移到左侧
+  local _, om2 = px.shear(img, m, {amp = 3, pivot = 11, phase = -math.pi / 2})
+  local top_x2 = nil
+  for x = 0, 15 do if px.get(om2, x, 0) then top_x2 = x end end
+  check("shear-negative-phase", top_x2 ~= nil and top_x2 < 8, "top_x2=" .. tostring(top_x2))
+end
+
 -- ---------- jsonEncode ----------
 do
   local s = px.jsonEncode({ok = true, n = 1.5, name = "tree_01"})

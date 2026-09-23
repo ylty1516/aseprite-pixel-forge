@@ -10,22 +10,29 @@ Programmatic pixel-art studio for AI agents: drive [Aseprite](https://www.asepri
 
 ![场景演示](assets/hero-scene.gif)
 
-> 《神之左手》哥特暗黑风格 · 全部素材由本项目**程序化生成**（Godot 480×270 规格，2x 展示；场景动效为静态素材的后处理演示——原生多帧动画在 v3 路线图）。
+> 《神之左手》哥特暗黑风格 · 全部素材由本项目**程序化生成**（Godot 480×270 规格，2x 展示）。
+> 植物动效为**配方原生多帧动画**（树冠相位摆动/团簇呼吸/叶片弯曲，`frames` 参数），经 Aseprite 导出；
+> 漂浮火星与浆果脉动为场景演示点缀。
 
 ## 这是什么
 
 不是"又一个素材生成器"，而是一条**可复现的质量流水线**（Agent Skills 标准技能包，pi / Claude Code / Codex 等 agent 装入 `~/.agents/skills/` 即可发现）：
 
 - **style spec（风格规格）**：色板 ramp（暗→亮带色相偏移）、光照方向、轮廓策略、抖动密度——所有生成器服从同一份"美术圣经"，跨品类风格统一
-- **技法库**：Lua 像素技法原语（光照明暗含 AO、选择性轮廓、Bayer 抖动、2×2 簇抖动、边界扰动、点缀、刻线），全部走注入种子 PRNG——**同 seed 逐字节可复现**
-- **质量闭环**：批量生成候选 → 数值质检（色板违规/空图/触边）→ 放大 + 1x 联系表 → 视觉选优（rubric 五维打分）→ 参数进化（`forge evolve`）→ 图集导出
+- **技法库**：Lua 像素技法原语（光照明暗含 AO、选择性轮廓、Bayer 抖动、2×2 簇抖动、边界扰动、点缀、刻线、行级弯曲 shear），全部走注入种子 PRNG——**同 seed 逐字节可复现**
+- **原生多帧动画**：树/灌木/花草支持 `frames` 参数输出多帧 `.aseprite`（每帧轮廓真实变化，非平移假动），可经 `export --gif` 直接产出循环 GIF
+- **质量闭环**：批量生成候选 → 数值质检（色板违规/空图/触边）→ 放大 + 1x 联系表 → 视觉选优（rubric 五维打分）→ 参数进化（`forge evolve`）→ 图集/动图导出
 - **全链路无头**：`aseprite -b --script`，不需要打开 GUI；任何能跑命令行的 agent 都能驱动
 
 ## 画廊
 
-| 变体矩阵（6 品类 × 全参数域） | 进化轮（父本 → 子代，参数扰动 + 重掷） |
+| 树木摆动（原生 6 帧动画，6x） | 变体矩阵（6 品类 × 全参数域） |
 |---|---|
-| ![variants](assets/variants.gif) | ![evolution](assets/evolution.png) |
+| ![tree sway](assets/tree-sway.gif) | ![variants](assets/variants.gif) |
+
+| 进化轮（父本 → 子代，参数扰动 + 重掷） |  |
+|---|---|
+| ![evolution](assets/evolution.png) |  |
 
 完整产出与质量报告：**[examples/gothic-nature-pack](examples/gothic-nature-pack/)** —— 6 品类 / 52 张精灵 + 9 张图集，严格色板 100% 合规（含 `source_aseprite/` 源文件供人工精修）。
 
@@ -51,6 +58,11 @@ python scripts/forge.py gen tree --style styles/left-hand-of-god.json \
 python scripts/forge.py check build/tree
 python scripts/forge.py preview build/tree --scale 6 --cols 6
 
+# 3b) 动画：树木 4 帧摆动版（frames 参数；export --gif 直接出循环 GIF）
+python scripts/forge.py gen tree --style styles/left-hand-of-god.json \
+    --count 8 --seed 2000 --param frames=4 --out build/tree-anim
+python scripts/forge.py export build/tree-anim --out out/tree-anim --sheet --gif
+
 # 4) 进化一轮（对保留编号做参数扰动）
 python scripts/forge.py evolve build/tree --keep 1,5,9 --out build/tree-r2
 
@@ -64,10 +76,10 @@ python scripts/forge.py export build/tree-r2 --out out/tree --pick 1,3 --sheet
 
 | 配方 | 内容 | 变体维度 |
 |------|------|----------|
-| `tree` | 阔叶树 / 枯树 / 松柏 | 高度 / 树冠占比 / 不对称 / 倾斜 / 苔藓量 |
-| `bush` | 灌木（含浆果与微光点缀） | 大小 / 色板 / 枯枝 / 浆果 / 发光 |
+| `tree` | 阔叶树 / 枯树 / 松柏（支持摆动动画） | 高度 / 树冠占比 / 不对称 / 倾斜 / 苔藓量 / 帧数 |
+| `bush` | 灌木（含浆果与微光点缀，团簇呼吸动画） | 大小 / 色板 / 枯枝 / 浆果 / 发光 / 帧数 |
 | `rock` | 角面岩石 S/M/L | 尺寸 / 棱角 / 裂缝 / 副石 / 苔藓 / 冷暖石 |
-| `flower` | 草簇 / 墓地百合 / 蕨类 | 形态 / 数量 / 高度 / 色板 / 发光 |
+| `flower` | 草簇 / 墓地百合 / 蕨类（叶片弯曲动画） | 形态 / 数量 / 高度 / 色板 / 发光 / 帧数 |
 | `tile` | 草地 / 泥路 / 石板路 / 石地 32×32 | 类型 / 密度 / 苔藓 / 冷暖石 |
 | `ruin` | 断柱 / 砖堆 / 拱残件 48×48 | 类型 / 破损度 / 苔藓 |
 
@@ -97,14 +109,14 @@ style spec ──► gen N 候选 ──► check 数值剪枝 ──► preview
 ├── styles/left-hand-of-god.json# 基准风格规格（哥特暗黑，13 色阶 × 5 阶）
 ├── references/                 # 方法论：技法规则 / 规格格式 / 评估 rubric / CLI 手册 / 工作流
 ├── tests/                      # 70 项测试（单测 + Lua 金样 + 集成 + 全变体矩阵 + 打包防护）
-├── tools/make_showcase.py      # 本文档演示素材构建脚本
+├── tools/make_showcase.py      # 演示素材构建（按 pack.json 参数重生成动画帧）
 └── examples/gothic-nature-pack # v1 验收产出（含质量报告）
 ```
 
 ## 诚实的质量说明
 
 - **已达**：自然物 6 类在哥特风格下达到"可直接进项目使用"（1x 可读、风格统一、色板严格 100%、批量确定性）
-- **未达**（相比"商业成品级"的差距，记录在产出包里）：细节层次不如手绘、拱残件造型偏弱、**原生动画缺失**（本 README 动图为后处理演示）、人物/建筑尚未开发（v2）
+- **未达**（相比"商业成品级"的差距，记录在产出包里）：细节层次不如手绘、拱残件造型偏弱、动画覆盖品类有限（岩石/遗迹无动画，人物/建筑尚未开发——v2）、场景级艺术方向仍弱
 - 与规格的已知偏差与缺口：见 [设计规格 §11](docs/superpowers/specs/2026-09-23-aseprite-pixel-forge-design.md)
 
 ## 测试

@@ -183,3 +183,12 @@ mask 驱动：配方先构造形状掩码（2D 表），库统一做**明暗/轮
 4. **runner**：`--script-param` 必须置于 `--script` **之前**（Aseprite 1.3.18 实测硬要求）；查找顺序为 env → config → PATH → 常见路径。
 5. **色板规模**：基准 style 为 13 ramp × 5 阶 = 65 色（±outline）。
 6. **已知缺口（记入 v1.1 候选，不在 v1 承诺内）**：tile 拼接边检；manifest `score` 为占位字段（`selected` 由 evolve/export 回写）；人物/建筑品类按路线图 v2。
+
+## 12. v1.5 动画升级（2026-09-23）
+
+“原生动画缺失”已在 v1.5 补齐（树/灌木/花草）：
+
+1. **gen 协议扩展**：`frames`（1–6，非采样参数）+ 保留参数 `fps`；同 seed 逐帧重建基础形态，`ctx.phase` 叠加帧间差异，循环无缝且确定性保持；
+2. **技法库**：新增 `px.shear`（行级弯曲，根部固定/宽度保持/连通保持）；配方接入：tree=树冠相位摆动、bush=团簇呼吸、flower=叶片弯曲；
+3. **导出**：`forge export --gif` 经 Aseprite 将多帧 `.aseprite` 直接导出循环 GIF；
+4. **复现机制**：`gen --params-file <{seed,params}>` 可将已选定静态候选精确重生成动画版（pack.json 即参数源）。

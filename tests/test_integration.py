@@ -97,6 +97,37 @@ def test_evolve_and_export(aseprite_path, tmp_path):
     assert (pack_dir / "source_aseprite").is_dir()
 
 
+def test_animation_frames_and_gif_export(aseprite_path, tmp_path):
+    """多帧动画：树 4 帧生成 + 全部帧色板合规 + GIF 导出 4 帧。"""
+    from PIL import Image
+
+    build = tmp_path / "anim"
+    r = run_forge("gen", "tree", "--style", STYLE, "--out", str(build),
+                  "--count", "1", "--seed", "9",
+                  "--param", "frames=4", "--param", "fps=6")
+    assert r.returncode == 0, r.stdout + r.stderr
+    manifest = _manifest(build)
+    c = manifest["candidates"][0]
+    assert c["frames"] == 4
+    frames = c["files"]["png_frames"]
+    assert len(frames) == 4
+    for f in frames:
+        assert Path(f).is_file()
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from style import check_png_compliance, load_style
+    style = load_style(ROOT / "styles" / "left-hand-of-god.json")
+    for f in frames:
+        assert check_png_compliance(f, style)["ok"], f
+
+    out = tmp_path / "out"
+    r = run_forge("export", str(build), "--out", str(out), "--pick", "1", "--gif")
+    assert r.returncode == 0, r.stdout + r.stderr
+    gif = out / "tree_01.gif"
+    assert gif.is_file()
+    assert Image.open(gif).n_frames == 4
+
+
 def test_export_refuses_bad_palette(aseprite_path, tmp_path):
     """构造一个色板违规场景：用只含 2 色的 style 去导出 smoke 图。"""
     thin_style = tmp_path / "thin.json"

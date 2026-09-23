@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
-"""构建 README 演示素材。
+"""构建 README 演示素材（v2：配方原生多帧动画版）。
 
 产出（assets/）：
-  hero-scene.gif   960x540 场景动效（2x），12 帧
+  hero-scene.gif   960x540 场景动效（2x），12 帧 —— 树木/灌木/花草均为配方原生帧动画
   hero-scene.png   静止首帧
+  tree-sway.gif    单株树木摆动（6 帧动画，6x 放大）
   variants.gif     六品类变体轮播
   evolution.png    进化前后对比
 
-动效说明（诚实标注）：所有动画均为对静态素材的程序化后处理
-（帧位移摆动 / 颜色脉动 / 粒子），配方原生多帧动画在 v3 路线图。
+动画说明：植物动画本体由配方原生多帧生成（frames 参数；树冠相位摆动/团簇呼吸/
+叶片剪切弯曲），帧序列经 Aseprite 保存；场景中的火星粒子与浆果脉动为演示点缀。
 
-用法： py -3 tools/make_showcase.py
+用法： py -3 tools/make_showcase.py [--no-regen]   （--no-regen 复用已生成缓存）
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import math
 import random
+import subprocess
 import sys
 from pathlib import Path
 
@@ -25,6 +29,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 PACK = ROOT / "examples" / "gothic-nature-pack"
 ASSETS = ROOT / "assets"
+CACHE = ROOT / "forge-build" / "showcase"
 sys.path.insert(0, str(ROOT / "scripts"))
 from style import load_style, parse_hex  # noqa: E402
 
@@ -39,11 +44,15 @@ BG = parse_hex(STYLE["palette"]["ramps"]["shadow"][0])
 
 GAME_W, GAME_H = 480, 270
 SCALE = 2
-FRAMES = 12
-DURATION_MS = 100
+FRAMES = 12          # 场景循环帧数
+DURATION_MS = 90
+SPRITE_FRAMES = 4    # 场景内动画素材帧数（12 % 4 == 0 保证无缝循环）
+
+FOLDER_RECIPE = {"trees": "tree", "bushes": "bush", "rocks": "rock",
+                 "flowers": "flower", "tiles": "tile", "ruins": "ruin"}
 
 
-# ---------------------------------------------------------------- 工具
+# ---------------------------------------------------------------- 字体 / 载入
 
 def load_font(size: int, need_cjk: bool):
     candidates = [
@@ -75,7 +84,6 @@ def load_sprites(folder: str) -> dict:
 
 
 def palette_levels(ramp_name: str) -> dict:
-    """{rgba tuple: level}"""
     return {parse_hex(c) + (255,): i + 1
             for i, c in enumerate(STYLE["palette"]["ramps"][ramp_name])}
 
@@ -85,7 +93,6 @@ FROST = palette_levels("frost")
 
 
 def glow_map(sprite: Image.Image) -> dict:
-    """检测发光像素（余烬/霜华高阶色）→ 脉动替换色映射。"""
     mapping = {}
     ember_colors = [c for c, lv in EMBER.items() if lv >= 4]
     frost_colors = [c for c, lv in FROST.items() if lv >= 5]
@@ -113,36 +120,76 @@ def pulse(sprite: Image.Image, mapping: dict) -> Image.Image:
     return out
 
 
-def paste_sway(base: Image.Image, sprite: Image.Image, pos, dx: int, split_ratio=0.42):
-    """上半身水平偏移 dx 的"摆动"合成；补缝避免断裂。"""
-    w, h = sprite.size
-    ys = max(1, int(h * split_ratio))
-    top = sprite.crop((0, 0, w, ys))
-    bottom = sprite.crop((0, ys, w, h))
-    px, py = pos
-    base.alpha_composite(top, (px + dx, py))
-    base.alpha_composite(bottom, (px, py + ys))
-    if dx > 0:
-        edge = top.crop((0, 0, 1, ys))
-        for i in range(dx):
-            base.alpha_composite(edge, (px + i, py))
-    elif dx < 0:
-        edge = top.crop((w - 1, 0, w, ys))
-        for i in range(-dx):
-            base.alpha_composite(edge, (px + w - 1 - i, py))
+# ---------------------------------------------------------------- 动画素材重生成
+
+def build_cast_index(folder: str) -> dict:
+    """{导出名: {seed, params}}，含进化轮 pack_*.json。"""
+    idx = {}
+    main = PACK / folder / "pack.json"
+    files = [main] + sorted((PACK / folder).glob("pack_*.json"))
+    for f in files:
+        if not f.is_file():
+            continue
+        data = json.loads(f.read_text(encoding="utf-8"))
+        prefix = data.get("prefix", data.get("recipe", "sprite"))
+        for i, c in enumerate(data.get("candidates", []), 1):
+            idx[f"{prefix}_{i:02d}"] = {"seed": c["seed"], "params": c["params"]}
+    return idx
+
+
+def regenerate_animated(folder: str, name: str, frames: int = SPRITE_FRAMES,
+                        fps: int = 8, use_cache: bool = True) -> list:
+    """按 pack.json 记录的 seed/params 重生成带帧动画的候选；返回帧图列表。"""
+    cache = CACHE / f"{folder}-{name}-f{frames}"
+    if use_cache and cache.is_dir() and list(cache.glob("*_f2.png")):
+        pass
+    else:
+        idx = build_cast_index(folder)
+        if name not in idx:
+            print(f"⚠ 演算索引缺少 {folder}/{name}（用静态图代替）")
+            return []
+        cache.mkdir(parents=True, exist_ok=True)
+        pf = cache / "params.json"
+        pf.write_text(json.dumps(idx[name], ensure_ascii=False), encoding="utf-8")
+        recipe = FOLDER_RECIPE[folder]
+        r = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "forge.py"), "gen", recipe,
+             "--style", str(ROOT / "styles" / "left-hand-of-god.json"),
+             "--out", str(cache), "--params-file", str(pf),
+             "--param", f"frames={frames}", "--param", f"fps={fps}"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if r.returncode != 0:
+            print(f"⚠ 动画重生成失败 {name}: {r.stdout[-200:]}{r.stderr[-200:]}")
+            return []
+    base = sorted(p for p in cache.glob("*.png") if "_f" not in p.stem
+                  and not p.name.startswith("_"))
+    if not base:
+        return []
+    stem = base[0].stem
+    frames_list = [cache / f"{stem}.png"]
+    i = 2
+    while (f_ := cache / f"{stem}_f{i}.png").is_file():
+        frames_list.append(f_)
+        i += 1
+    return [Image.open(p).convert("RGBA") for p in frames_list]
 
 
 # ---------------------------------------------------------------- 场景
 
-def build_scene():
-    """返回 (背景, 舞台元素列表)。元素 = dict(sprite, x, y, kind, phase)"""
+ANIMATED = {
+    "trees": ["tree_01", "tree_evolved_01", "tree_04", "tree_07"],
+    "bushes": ["bush_01", "bush_03", "bush_05", "bush_06", "bush_07", "bush_08"],
+    "flowers": ["flower_01", "flower_03", "flower_04", "flower_05", "flower_06", "flower_08"],
+}
+
+
+def build_scene(use_cache: bool = True):
     rng = random.Random(20260923)
-    grass = load_sprites("tiles")
+    tiles = load_sprites("tiles")
     stage = []
 
-    # 地面：草地铺满
-    grass_tiles = [grass[k] for k in ("tile_02", "grass_01", "grass_02") if k in grass]
     ground = Image.new("RGBA", (GAME_W, GAME_H), BG + (255,))
+    grass_tiles = [tiles[k] for k in ("tile_02", "grass_01", "grass_02") if k in tiles]
     for ty in range(0, GAME_H, 32):
         for tx in range(0, GAME_W, 32):
             tile = grass_tiles[rng.randrange(len(grass_tiles))]
@@ -150,105 +197,102 @@ def build_scene():
                 tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
             ground.alpha_composite(tile, (tx, ty))
 
-    # 泥路：左→右的波浪带
-    dirt_tiles = [grass[k] for k in ("tile_01", "tile_05") if k in grass]
+    dirt_tiles = [tiles[k] for k in ("tile_01", "tile_05") if k in tiles]
     for tx in range(-32, GAME_W + 32, 32):
         wy = int(196 - math.sin(tx / 110.0) * 26)
-        tile = dirt_tiles[(tx // 32) % 2]
-        ground.alpha_composite(tile, (tx, wy))
-        ground.alpha_composite(tile, (tx, wy + 32))
+        ground.alpha_composite(dirt_tiles[(tx // 32) % 2], (tx, wy))
+        ground.alpha_composite(dirt_tiles[(tx // 32) % 2], (tx, wy + 32))
 
-    # 石板庭院（右中）
-    cobble = [grass[k] for k in ("tile_03", "tile_07") if k in grass]
+    cobble = [tiles[k] for k in ("tile_03", "tile_07") if k in tiles]
     for ty in range(128, 256, 32):
         for tx in range(288, GAME_W, 32):
             ground.alpha_composite(cobble[rng.randrange(len(cobble))], (tx, ty))
-    slabs = [grass[k] for k in ("tile_04", "tile_06") if k in grass]
+    slabs = [tiles[k] for k in ("tile_04", "tile_06") if k in tiles]
     for ty in (160, 192):
         for tx in (320, 352, 384):
             ground.alpha_composite(slabs[0 if (tx // 32 + ty // 32) % 2 else 1], (tx, ty))
 
-    trees = load_sprites("trees")
-    bushes = load_sprites("bushes")
-    rocks = load_sprites("rocks")
-    flowers = load_sprites("flowers")
-    ruins = load_sprites("ruins")
+    stores = {f: load_sprites(f) for f in
+              ("trees", "bushes", "rocks", "flowers", "ruins")}
+    anim_frames = {}
+    for folder, names in ANIMATED.items():
+        for name in names:
+            fl = regenerate_animated(folder, name, use_cache=use_cache)
+            if fl:
+                anim_frames[(folder, name)] = fl
+            else:
+                print(f"ℹ {folder}/{name} 使用静态帧")
 
-    def place(sprite, x, y, kind, phase=0.0, sway=2):
-        stage.append({"sprite": sprite, "x": x, "y": y, "kind": kind,
-                      "phase": phase, "sway": sway,
-                      "glow": glow_map(sprite) if kind == "glow_grass" else {}})
+    def get_frames(folder, name):
+        fl = anim_frames.get((folder, name))
+        if fl:
+            return fl
+        s = stores[folder].get(name)
+        return [s] if s else [None]
 
-    def place_named(store, name, x, y, kind, phase=0.0, sway=2):
-        if name not in store:
-            print(f"⚠ 场景缺少素材 {name}（已跳过）")
+    def place(folder, name, x, y, kind="static", phase=0):
+        fl = get_frames(folder, name)
+        if fl[0] is None:
+            print(f"⚠ 场景缺少素材 {folder}/{name}")
             return
-        s = store[name]
-        place(s, x - s.width // 2, y - s.height, kind, phase, sway)
+        s = fl[0]
+        stage.append({
+            "frames": fl, "kind": kind, "phase": phase,
+            "x": x - s.width // 2, "y": y - s.height,
+            "glow": glow_map(s) if kind == "glow" else {},
+        })
 
-    def bottom_center(sprite, x, y):
-        return (x - sprite.width // 2, y - sprite.height), None
-
-    # 树木（上半身摆动）
-    for name, x, y, ph in (
-        ("tree_01", 64, 184, 0.0), ("tree_evolved_01", 172, 166, 0.6),
-        ("tree_04", 420, 128, 1.2), ("tree_06", 240, 150, 2.1),
-        ("tree_07", 96, 108, 1.7),
-    ):
-        place_named(trees, name, x, y, "tree", ph)
-
-    # 灌木（整体微摆；带浆果的加脉动）
+    # 树木
+    place("trees", "tree_01", 64, 184, "anim", 0)
+    place("trees", "tree_evolved_01", 172, 166, "anim", 1)
+    place("trees", "tree_04", 420, 128, "anim", 2)
+    place("trees", "tree_06", 240, 150)          # 枯树：静态
+    place("trees", "tree_07", 96, 108, "anim", 3)
+    # 灌木
     for i, (name, x, y) in enumerate((
         ("bush_01", 110, 232), ("bush_03", 200, 240), ("bush_05", 268, 240),
         ("bush_08", 448, 220), ("bush_06", 348, 108), ("bush_02", 30, 158),
         ("bush_07", 140, 92), ("bush_04", 300, 70),
     )):
-        place_named(bushes, name, x, y, "glow_grass", i * 0.9, sway=2)
-
-    # 岩石 / 花草
+        place("bushes", name, x, y, "glow", i)
+    # 岩石
     for name, x, y in (("rock_02", 148, 246), ("rock_07", 316, 240),
                        ("rock_05", 60, 234), ("rock_08", 452, 96),
                        ("rock_03", 210, 84), ("rock_06", 380, 60)):
-        place_named(rocks, name, x, y, "static")
+        place("rocks", name, x, y)
+    # 花草
     for i, (name, x, y) in enumerate((
         ("flower_05", 92, 250), ("flower_04", 218, 252), ("flower_06", 382, 246),
         ("flower_01", 300, 112), ("flower_05", 428, 206), ("flower_07", 20, 244),
         ("flower_08", 132, 128), ("flower_02", 260, 96), ("flower_03", 60, 110),
     )):
-        place_named(flowers, name, x, y, "glow_grass", i * 1.3, sway=1)
-
-    # 遗迹（静止）：断柱移到草地边缘保证可读性
+        place("flowers", name, x, y, "glow", i * 2)
+    # 遗迹（静态）
     for name, x, y in (("ruin_01", 272, 206), ("ruin_04", 396, 150),
                        ("ruin_02", 452, 240), ("ruin_evolved_01", 236, 88)):
-        place_named(ruins, name, x, y, "static")
+        place("ruins", name, x, y)
 
     return ground, stage
 
 
 def render_frame(ground, stage, t):
     frame = ground.copy()
-    # 静态层
     for el in stage:
-        if el["kind"] == "static":
-            frame.alpha_composite(el["sprite"], (el["x"], el["y"]))
-    # 摆动层
-    for el in stage:
-        if el["kind"] == "tree":
-            dx = round(math.sin(t / FRAMES * math.pi * 2 + el["phase"]) * 1)
-            paste_sway(frame, el["sprite"], (el["x"], el["y"]), dx)
-        elif el["kind"] == "glow_grass":
-            dx = round(math.sin(t / FRAMES * math.pi * 2 + el["phase"]) * 1)
-            s = el["sprite"]
-            pulse_on = (t + int(el["phase"] * 3)) % 4 < 2
-            img = pulse(s, el["glow"]) if pulse_on else s
-            split = 1.0 if s.height < 20 else 0.5
-            if s.height < 20:
-                frame.alpha_composite(img, (el["x"] + dx, el["y"]))
-            else:
-                paste_sway(frame, img, (el["x"], el["y"]), dx, split_ratio=0.55)
-    # 余烬粒子（演示特效）
-    draw_layer = Image.new("RGBA", frame.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(draw_layer)
+        fl = el["frames"]
+        n = len(fl)
+        if el["kind"] == "static" or n == 1:
+            img = fl[0]
+        else:
+            step = max(1, FRAMES // n)
+            idx = ((t // step) + el["phase"]) % n
+            img = fl[idx]
+            if el["kind"] == "glow":
+                img = pulse(img, el["glow"]) if (t % 4 < 2) else img
+        frame.alpha_composite(img, (el["x"], el["y"]))
+
+    # 余烬粒子（演示点缀）
+    layer = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
     ember_hi = parse_hex(STYLE["palette"]["ramps"]["ember"][4])
     ember_mid = parse_hex(STYLE["palette"]["ramps"]["ember"][3])
     rng = random.Random(7)
@@ -257,10 +301,10 @@ def render_frame(ground, stage, t):
         prog = ((t + off * 2) % FRAMES) / FRAMES
         y = by - prog * 70
         x = bx + math.sin(t / 2.5 + i) * 5
-        alpha = int(200 * math.sin(prog * math.pi))
+        alpha = int(190 * math.sin(prog * math.pi))
         col = ember_hi if (t + i) % 3 else ember_mid
         d.rectangle([x, y, x + 1, y + 1], fill=col + (alpha,))
-    frame.alpha_composite(draw_layer)
+    frame.alpha_composite(layer)
     return frame
 
 
@@ -284,14 +328,25 @@ def save_gif(frames_rgba, path, duration=DURATION_MS):
 
 # ---------------------------------------------------------------- 其它素材
 
+def build_tree_sway(use_cache=True):
+    fl = regenerate_animated("trees", "tree_evolved_01", frames=6, fps=6,
+                             use_cache=use_cache)
+    if not fl:
+        return
+    s = 6
+    big = [f.resize((f.width * s, f.height * s), Image.NEAREST) for f in fl]
+    W, H = big[0].size
+    canvas = [Image.new("RGBA", (W + 80, H + 60), BG + (255,)) for _ in big]
+    for i, b in enumerate(big):
+        canvas[i].alpha_composite(b, (40, 20))
+    save_gif(canvas, ASSETS / "tree-sway.gif", duration=150)
+
+
 def build_variants_gif():
     categories = [
-        ("trees", "Trees 树木", 3),
-        ("bushes", "Bushes 灌木", 3),
-        ("rocks", "Rocks 岩石", 3),
-        ("flowers", "Flowers 花草", 3),
-        ("tiles", "Terrain 地形", 3),
-        ("ruins", "Ruins 遗迹", 2),
+        ("trees", "Trees 树木", 3), ("bushes", "Bushes 灌木", 3),
+        ("rocks", "Rocks 岩石", 3), ("flowers", "Flowers 花草", 3),
+        ("tiles", "Terrain 地形", 3), ("ruins", "Ruins 遗迹", 2),
     ]
     W, H = 960, 250
     frames = []
@@ -300,8 +355,7 @@ def build_variants_gif():
         d = ImageDraw.Draw(img)
         d.text((24, 14), label if HAS_CJK else label.split(" ")[0],
                fill=(235, 233, 240), font=FONT_26)
-        sprites = [s for name, s in sorted(load_sprites(folder).items())]
-        sprites = sprites[:9]
+        sprites = [s for _, s in sorted(load_sprites(folder).items())][:9]
         cell_w = (W - 48) // max(1, len(sprites))
         for i, s in enumerate(sprites):
             big = s.resize((s.width * scale, s.height * scale), Image.NEAREST)
@@ -339,33 +393,40 @@ def build_evolution_png():
             y = 64 + row * (panel_h // 2) + (panel_h // 2 - big.height) // 2
             img.paste(big, (x, y), big)
         if HAS_CJK:
-            d.text((base_x + 60, 64 + panel_h // 2 - 12), "↓", fill=(201, 106, 51), font=FONT_26)
+            d.text((base_x + 60, 64 + panel_h // 2 - 12), "↓",
+                   fill=(201, 106, 51), font=FONT_26)
             d.text((base_x + 70, 72), label, fill=(150, 145, 160), font=FONT_18)
     img.save(ASSETS / "evolution.png")
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--no-regen", action="store_true", help="复用已生成的动画缓存")
+    args = ap.parse_args()
+    use_cache = args.no_regen
+
     ASSETS.mkdir(exist_ok=True)
-    ground, stage = build_scene()
+    ground, stage = build_scene(use_cache=use_cache)
 
     frames = [render_frame(ground, stage, t) for t in range(FRAMES)]
-    big_frames = [f.resize((f.width * SCALE, f.height * SCALE), Image.NEAREST) for f in frames]
+    big = [f.resize((f.width * SCALE, f.height * SCALE), Image.NEAREST) for f in frames]
 
-    still = big_frames[0]
-    still.save(ASSETS / "hero-scene.png")
-    save_gif(big_frames, ASSETS / "hero-scene.gif")
+    big[0].save(ASSETS / "hero-scene.png")
+    save_gif(big, ASSETS / "hero-scene.gif")
 
-    # 供检查的采样胶片（不入库）
-    strip = Image.new("RGBA", (big_frames[0].width, big_frames[0].height * 2))
+    # 采样胶片（检查用，随后删除）
+    strip = Image.new("RGBA", (big[0].width, big[0].height * 2))
     for i, idx in enumerate((0, 3, 6, 9)):
-        strip.alpha_composite(big_frames[idx], (0, (i % 2) * big_frames[0].height))
+        strip.alpha_composite(big[idx], (0, (i % 2) * big[0].height))
     strip.resize((strip.width // 2, strip.height // 2), Image.NEAREST).save(
         ASSETS / "_debug_strip.png")
 
+    build_tree_sway(use_cache=use_cache)
     build_variants_gif()
     build_evolution_png()
 
-    for name in ("hero-scene.gif", "hero-scene.png", "variants.gif", "evolution.png"):
+    for name in ("hero-scene.gif", "hero-scene.png", "tree-sway.gif",
+                 "variants.gif", "evolution.png"):
         p = ASSETS / name
         print(f"✓ {p.relative_to(ROOT)}  {p.stat().st_size // 1024} KB")
 

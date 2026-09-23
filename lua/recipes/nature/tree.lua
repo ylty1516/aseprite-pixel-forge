@@ -43,7 +43,8 @@ local function draw_trunk(px, m, rng, W, H, p)
   return cx, base_y, x_top, trunk_top
 end
 
-local function draw_canopy(px, m, rng, W, H, p, cx, trunk_top)
+local function draw_canopy(px, m, rng, W, H, p, cx, trunk_top, phase)
+  phase = phase or 0
   local canopy_r = p.height * p.canopy * 0.78
   local cy = trunk_top - canopy_r * 0.35
   local blobs = px.rngInt(rng, 4, 6)
@@ -54,18 +55,21 @@ local function draw_canopy(px, m, rng, W, H, p, cx, trunk_top)
     local by = cy + math.sin(a) * span * 0.45 * px.rngRange(rng, 0.4, 1.0)
     bx = bx + (rng() - 0.5) * p.asymmetry * 6
     local r = canopy_r * px.rngRange(rng, 0.55, 0.95)
+    -- 帧间摆动（纯相位函数，不消耗 rng，保证基础形态不变）
+    bx = bx + math.sin(phase + i * 1.7) * 1.5
+    by = by + math.cos(phase * 0.9 + i) * 0.6
     px.blob(m, rng, bx, math.max(3, by), r, {
       irregularity = 0.55, points = px.rngInt(rng, 8, 12), smooth = 1,
     })
   end
-  px.blob(m, rng, cx, cy, canopy_r * 0.85, {
+  px.blob(m, rng, cx + math.sin(phase) * 0.8, cy, canopy_r * 0.85, {
     irregularity = 0.4, points = 10, smooth = 1,
   })
   -- 透光孔洞（树冠不是实心球）
   local holes = px.rngInt(rng, 3, 6)
-  for _ = 1, holes do
-    local hx = cx + (rng() - 0.5) * canopy_r * 2.4
-    local hy = cy + (rng() - 0.5) * canopy_r * 1.6
+  for i = 1, holes do
+    local hx = cx + (rng() - 0.5) * canopy_r * 2.4 + math.sin(phase + i) * 1.1
+    local hy = cy + (rng() - 0.5) * canopy_r * 1.6 + math.cos(phase * 0.8 + i) * 0.5
     local hr = px.rngRange(rng, 0.8, 1.9)
     local y0 = math.max(0, math.floor(hy - hr))
     local y1 = math.min(H - 1, math.ceil(hy + hr))
@@ -80,7 +84,8 @@ local function draw_canopy(px, m, rng, W, H, p, cx, trunk_top)
   end
 end
 
-local function draw_conifer(px, m, rng, W, H, p, cx, base_y, x_top)
+local function draw_conifer(px, m, rng, W, H, p, cx, base_y, x_top, phase)
+  phase = phase or 0
   local tiers = px.rngInt(rng, 4, 5)
   local total_h = p.height
   for tier = 1, tiers do
@@ -90,8 +95,10 @@ local function draw_conifer(px, m, rng, W, H, p, cx, base_y, x_top)
     local y_top = base_y - total_h * t1
     local half_top = (W * 0.30) * (1 - t1 * 0.7)
     local half_bot = (W * 0.34) * (1 - t0 * 0.7)
-    local cx_t = cx + (x_top - cx) * t1 + (rng() - 0.5) * 1.5
-    local cx_b = cx + (x_top - cx) * t0 + (rng() - 0.5) * 1.5
+    -- 帧间摆动：越高的层摆动越大
+    local sway = math.sin(phase + tier * 1.15) * (0.5 + t1 * 1.1)
+    local cx_t = cx + (x_top - cx) * t1 + (rng() - 0.5) * 1.5 + sway
+    local cx_b = cx + (x_top - cx) * t0 + (rng() - 0.5) * 1.5 + sway * 0.6
     -- 本层主体（微拱）
     for y = math.floor(y_top), math.ceil(y_bot) do
       local tt = (y - y_top) / math.max(1, y_bot - y_top)
@@ -102,10 +109,11 @@ local function draw_conifer(px, m, rng, W, H, p, cx, base_y, x_top)
         px.set(m, x, y, true)
       end
     end
-    -- 底缘下垂枝（锯齿三角形）
+    -- 底缘下垂枝（锯齿三角形，随相位微摆）
     local teeth = math.max(3, math.floor(half_bot * 0.9))
     for k = 0, teeth do
       local tx = cx_b - half_bot + (2 * half_bot) * (k / teeth)
+        + math.sin(phase + k * 0.5) * 0.7
       local depth = px.rngRange(rng, 1.5, 3.5)
       local wid = px.rngRange(rng, 0.7, 1.5)
       px.polygon(m, {
@@ -127,10 +135,11 @@ local function generate(ctx)
 
   -- 2) 树冠 / 松柏层（单独 mask）
   local canopy = px.canvas(W, H)
+  local phase = ctx.phase or 0
   if p.kind == "broadleaf" then
-    draw_canopy(px, canopy, rng, W, H, p, cx, trunk_top)
+    draw_canopy(px, canopy, rng, W, H, p, cx, trunk_top, phase)
   elseif p.kind == "conifer" then
-    draw_conifer(px, canopy, rng, W, H, p, cx, base_y, x_top)
+    draw_conifer(px, canopy, rng, W, H, p, cx, base_y, x_top, phase)
   end
 
   -- 合并主 mask（枯树：枝杈已在 trunk 中）
@@ -225,6 +234,7 @@ return {
     asymmetry = {type = "float", min = 0, max = 1, default = 0.35},
     lean = {type = "float", min = -0.15, max = 0.15, default = 0.05},
     moss = {type = "float", min = 0, max = 1, default = 0.5},
+    frames = {type = "int", min = 1, max = 6, default = 1, sample = false},
   },
   generate = generate,
 }

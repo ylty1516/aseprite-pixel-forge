@@ -93,8 +93,12 @@ def describe_recipe(recipe_path: Path, style_lua: Path, timeout: int = 60) -> di
 
 def sample_params(specs: dict, rng: random.Random) -> dict:
     # 排序遍历：保证与 describe JSON 键序无关（Lua pairs 顺序随进程随机）
+    # sample=false 的参数不采样，取默认值（如 frames/fps，需显式 --param 控制）
     out = {}
     for key, spec in sorted(specs.items()):
+        if spec.get("sample") is False:
+            out[key] = spec.get("default")
+            continue
         t = spec.get("type")
         if t == "int":
             out[key] = rng.randint(int(spec["min"]), int(spec["max"]))
@@ -160,19 +164,22 @@ def parse_indexes(text: str, limit: int) -> list:
 
 def run_batch(recipe_path: Path, style_lua: Path, style_file: Path, out_dir: Path,
               desc: dict, items: list, round_: int = 1, timeout: int = 120,
-              parents: list | None = None) -> dict:
+              parents: list | None = None,
+              extra_script_params: dict | None = None) -> dict:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     cands = []
     total = len(items)
     for i, item in enumerate(items):
         name = f"{desc['name']}_{i + 1:03d}"
-        res = run_script(GEN_LUA, {
+        script_params = {
             "mode": "generate", "lib": PX_LUA.as_posix(),
             "style": Path(style_lua).as_posix(), "recipe": recipe_path.as_posix(),
             "seed": item["seed"], "name": name, "out": out.as_posix(),
             "params": fmt_params(item["params"]),
-        }, timeout=timeout)
+        }
+        script_params.update(extra_script_params or {})
+        res = run_script(GEN_LUA, script_params, timeout=timeout)
         forge = res.get("forge")
         forge = forge if isinstance(forge, dict) else {}
         error = None
@@ -185,11 +192,12 @@ def run_batch(recipe_path: Path, style_lua: Path, style_file: Path, out_dir: Pat
                 detail = (res.get("stderr") or res.get("stdout") or "").strip()
                 error = detail[-500:] if detail else f"未知错误（exit={res.get('code')}）"
         files = forge.get("files") or {}
-        files = {k: files[k] for k in ("png", "aseprite") if k in files}
+        files = {k: files[k] for k in ("png", "aseprite", "png_frames") if k in files}
         entry = {
             "id": name, "index": i + 1, "seed": item["seed"],
             "params": item["params"], "ok": bool(forge.get("ok")),
             "error": error, "timeout": bool(res.get("timeout")),
+            "frames": int(forge.get("frames", 1) or 1),
             "files": files,
             "metrics": None, "selected": False, "score": None,
         }
@@ -267,27 +275,46 @@ def cmd_gen(args) -> int:
     specs = desc["params"]
 
     fixed = {}
+    extra_script = {}
     for piece in args.param or []:
         key, _, raw = piece.partition("=")
+        if key == "fps":  # 保留脚本参数：直通 Lua（不是配方参数）
+            try:
+                extra_script["fps"] = int(float(raw))
+            except ValueError:
+                raise ForgeError(f"参数 fps={raw!r} 非法：期望整数（如 8）") from None
+            continue
         if key not in specs:
             raise ForgeError(
-                f"未知参数 {key!r}（配方支持：{', '.join(sorted(specs)) or '无'}）")
+                f"未知参数 {key!r}（配方支持：{', '.join(sorted(specs)) or '无'}；另保留 fps）")
         try:
             fixed[key] = coerce_param(specs[key], raw)
         except ValueError as e:
             raise ForgeError(f"参数 {key}={raw!r} 非法：{e}") from e
 
     items = []
-    for i in range(args.count):
-        rng = random.Random(args.seed + i)
-        params = sample_params(specs, rng)
+    if args.params_file:
+        pf = Path(args.params_file)
+        if not pf.is_file():
+            raise ForgeError(f"--params-file 不存在：{pf}")
+        try:
+            spec_json = json.loads(pf.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            raise ForgeError(f"--params-file 解析失败：{e}") from e
+        params = {k: spec_json["params"][k] for k in spec_json.get("params", {}) if k in specs}
         params.update(fixed)
-        items.append({"params": params, "seed": args.seed + i})
+        items.append({"params": params, "seed": int(spec_json.get("seed", args.seed))})
+    else:
+        for i in range(args.count):
+            rng = random.Random(args.seed + i)
+            params = sample_params(specs, rng)
+            params.update(fixed)
+            items.append({"params": params, "seed": args.seed + i})
 
     print(f"配方 {desc['name']}（{desc['category']}），画布 {desc['size'][0]}x{desc['size'][1]}，"
           f"候选 {args.count} 个，seed {args.seed}")
     manifest = run_batch(recipe_path, style_lua, style_file, out, desc, items,
-                         timeout=args.timeout)
+                         timeout=args.timeout, extra_script_params=extra_script)
     ok_n = sum(1 for c in manifest["candidates"] if c["ok"])
     if ok_n == 0:
         print("✗ 全部候选生成失败（详见上方错误与 manifest.json）")
@@ -452,6 +479,21 @@ def cmd_export(args) -> int:
             [str(p) for p in exported], out / f"{prefix}_sheet.png",
             out / f"{prefix}_sheet.json", columns=args.sheet_cols)
 
+    # 多帧候选：经 Aseprite 导出动画 GIF
+    gif_exported = []
+    if args.gif and exported:
+        asp = find_aseprite()
+        for i, c in enumerate(picks, start=1):
+            ase = c.get("files", {}).get("aseprite")
+            if not ase or not Path(ase).is_file() or int(c.get("frames", 1) or 1) <= 1:
+                continue
+            gif_path = out / f"{prefix}_{i:02d}.gif"
+            res = run_command([str(asp), "-b", str(ase), "--save-as", str(gif_path)])
+            if res["ok"] and gif_path.is_file():
+                gif_exported.append(gif_path.name)
+            else:
+                print(f"⚠ GIF 导出失败：{c['id']}  {str(res.get('stderr', ''))[-160:]}")
+
     pack = {
         "recipe": manifest["recipe"],
         "prefix": prefix,
@@ -459,6 +501,7 @@ def cmd_export(args) -> int:
         "exported": [str(p.name) for p in exported],
         "sources": sorted(exported_sources),
         "sheet": {"png": sheet_info[0].name, "json": sheet_info[1].name} if sheet_info else None,
+        "gif": gif_exported,
         "candidates": [
             {"id": c["id"], "seed": c["seed"], "params": c["params"],
              "metrics": c.get("metrics")}
@@ -478,6 +521,8 @@ def cmd_export(args) -> int:
     print(f"✓ 已导出 {len(exported)} 图 → {out}")
     if sheet_info:
         print(f"✓ 图集：{sheet_info[0]} + {sheet_info[1]}")
+    if gif_exported:
+        print(f"✓ 动图：{len(gif_exported)} 个 GIF")
     print(f"✓ 清单：{pack_path}")
     return 0
 
@@ -588,6 +633,7 @@ def main(argv=None) -> int:
     p.add_argument("--count", type=int, default=24)
     p.add_argument("--seed", type=int, default=1000)
     p.add_argument("--param", action="append", default=[], help="固定参数 k=v（可多次）")
+    p.add_argument("--params-file", help="JSON {seed, params}：精确复现/重生成单候选（与 --param 可叠加覆盖）")
     p.add_argument("--timeout", type=int, default=120)
     p.set_defaults(func=cmd_gen)
 
@@ -619,6 +665,7 @@ def main(argv=None) -> int:
     p.add_argument("--prefix", help="导出文件前缀（默认=配方名）")
     p.add_argument("--sheet", action="store_true")
     p.add_argument("--sheet-cols", type=int, default=8)
+    p.add_argument("--gif", action="store_true", help="多帧候选额外导出动画 GIF")
     p.add_argument("--style")
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_export)

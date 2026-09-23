@@ -59,7 +59,17 @@ python scripts/forge.py export <build目录> --out <输出目录> --pick 1,5,9 -
 - 产出：`名称_NN.png` + `名称_sheet.png/json` + `source_aseprite/`（可人工精修）+ `pack.json`（含 seed/参数）；
 - 同目录重复导出不同前缀时清单自动存为 `pack_<prefix>.json`。
 
-## 6. 沉淀新配方（让库长大）
+## 6. 帧动画（植物类配方）
+
+- 用 `frames` 参数（1–6）输出多帧；`fps` 保留参数控制 .aseprite 帧时长（默认 8）；
+- **关键帧写法（必须）**：同一 seed 逐帧重建基础形态（rng 不动），仅用 `ctx.phase` 叠加帧间差异——
+  循环无缝、确定性不破坏（参看 `tree.lua` 树冠摆动 / `bush.lua` 团簇呼吸 / `flower.lua` 的 `px.shear` 弯曲）；
+- 动画纪律：根部固定、幅度 1–3px、帧数 4–6、相邻帧剪影必须真实变化（不是整体平移）；
+- 导出动图：`forge export <build> --out <dir> --pick ... --gif`（经 Aseprite 保存循环 GIF）；
+- 把已选定的静态候选转成动画版：从 `pack.json` 提取 `{seed, params}` 写入 params.json，
+  然后 `forge gen <recipe> --params-file params.json --param frames=4`。
+
+## 7. 沉淀新配方（让库长大）
 
 成功的手写绘制代码 → 收敛为 `lua/recipes/<category>/<name>.lua`：
 

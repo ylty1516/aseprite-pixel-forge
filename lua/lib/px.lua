@@ -496,6 +496,49 @@ function px.carve(img, m, x0, y0, x1, y1, ramp, opts)
   end
 end
 
+-- 行级弯曲摆动（草地/花草/狭长物件）：根部固定，越高偏移越大；
+-- 按连通段平移并保持行宽度（空出的像素用该段内缘延伸），消除断线。
+-- opts: amp 最大偏移像素、pivot 根部行、phase 相位（弧度）、falloff 幂曲线
+function px.shear(img, m, opts)
+  opts = opts or {}
+  local amp = opts.amp or 2.0
+  local pivot = opts.pivot or (m.h - 1)
+  local phase = opts.phase or 0.0
+  local falloff = opts.falloff or 1.6
+  local span = math.max(1, pivot)
+  local out = px.newImage(m.w, m.h)
+  local om = px.canvas(m.w, m.h)
+  for y = 0, m.h - 1 do
+    local t = math.max(0, (pivot - y) / span)
+    local dx = math.floor(amp * (t ^ falloff) * math.sin(phase) + 0.5)
+    -- 本行连通段
+    local runs = {}
+    local x = 0
+    while x < m.w do
+      if m[y][x] then
+        local a = x
+        while x + 1 < m.w and m[y][x + 1] do x = x + 1 end
+        table.insert(runs, {a, x})
+      end
+      x = x + 1
+    end
+    for _, r in ipairs(runs) do
+      local a, b = r[1], r[2]
+      local na, nb = a + dx, b + dx
+      if nb >= 0 and na < m.w then
+        na = math.max(0, na)
+        nb = math.min(m.w - 1, nb)
+        for tx = na, nb do
+          local src = math.min(b, math.max(a, tx - dx))
+          out:putPixel(tx, y, img:getPixel(src, y))
+          px.set(om, tx, y, true)
+        end
+      end
+    end
+  end
+  return out, om
+end
+
 -- ============================================================ Image / 保存
 
 function px.newImage(w, h)

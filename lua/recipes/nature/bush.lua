@@ -10,28 +10,28 @@ local function generate(ctx)
   local ground = H - 1
   local cx = W / 2 + (rng() - 0.5) * 3
   local r = p.size
+  local phase = ctx.phase or 0
 
-  -- 1) 主体 mask
+  -- 1) 主体 mask（帧间相位摆动：团簇呼吸）
   local m = px.canvas(W, H)
-  px.blob(m, rng, cx, ground - r * 0.55, r, {
+  px.blob(m, rng, cx + math.sin(phase) * 0.8, ground - r * 0.55 + math.cos(phase) * 0.3, r, {
     irregularity = 0.5, points = px.rngInt(rng, 8, 12), smooth = 1,
   })
   local lobes = px.rngInt(rng, 1, 3)
-  for _ = 1, lobes do
+  for l = 1, lobes do
     local side = (rng() < 0.5) and -1 or 1
-    px.blob(m, rng,
-      cx + side * r * px.rngRange(rng, 0.4, 0.9),
-      ground - r * px.rngRange(rng, 0.2, 0.6),
-      r * px.rngRange(rng, 0.4, 0.7),
+    local bx = cx + side * r * px.rngRange(rng, 0.4, 0.9) + math.sin(phase + l * 1.6) * 1.1
+    local by = ground - r * px.rngRange(rng, 0.2, 0.6) + math.cos(phase + l) * 0.5
+    px.blob(m, rng, bx, by, r * px.rngRange(rng, 0.4, 0.7),
       {irregularity = 0.55, points = 8, smooth = 1})
   end
   -- 贴地压平
   for x = 0, W - 1 do m[ground][x] = false end
   -- 内部小孔
   local holes = px.rngInt(rng, 2, 4)
-  for _ = 1, holes do
-    local hx = cx + (rng() - 0.5) * r * 1.6
-    local hy = ground - r * px.rngRange(rng, 0.3, 1.0)
+  for i = 1, holes do
+    local hx = cx + (rng() - 0.5) * r * 1.6 + math.sin(phase + i) * 0.7
+    local hy = ground - r * px.rngRange(rng, 0.3, 1.0) + math.cos(phase + i) * 0.4
     px.set(m, hx, hy, false)
     if rng() < 0.5 then px.set(m, hx + 1, hy, false) end
   end
@@ -64,13 +64,13 @@ local function generate(ctx)
   px.speckle(img, m, leaf, rng, {count = 10, levels = {4, 5}, size = 1})
   px.speckle(img, m, leaf, rng, {count = 6, levels = {1}, size = 1})
 
-  -- 4) 浆果 / 花点
+  -- 4) 浆果 / 花点（随主体相位）
   if p.berries then
     local berry = px.rampOf(ctx.style, p.glow and "ember" or "frost")
     local dots = px.rngInt(rng, 3, 6)
     for _ = 1, dots do
-      local bx = math.floor(cx + (rng() - 0.5) * r * 1.6)
-      local by = math.floor(ground - r * px.rngRange(rng, 0.45, 1.1))
+      local bx = math.floor(cx + (rng() - 0.5) * r * 1.6 + math.sin(phase + 2) * 0.8)
+      local by = math.floor(ground - r * px.rngRange(rng, 0.45, 1.1) + math.cos(phase + 2) * 0.4)
       if px.get(m, bx, by) then
         img:putPixel(bx, by, berry[#berry])
         if rng() < 0.6 then img:putPixel(bx, by - 1, berry[#berry - 1]) end
@@ -102,6 +102,7 @@ return {
     twigs = {type = "bool", default = true},
     berries = {type = "bool", default = true},
     glow = {type = "bool", default = false},
+    frames = {type = "int", min = 1, max = 6, default = 1, sample = false},
   },
   generate = generate,
 }

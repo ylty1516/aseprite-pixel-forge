@@ -102,6 +102,22 @@ def test_export_sheet_coordinates(tmp_path):
     assert img.size == (16, 8)
 
 
+def test_sample_and_mutate_respect_non_sample_params():
+    import importlib
+    import random as _random
+
+    forge = importlib.import_module("forge")
+    specs = {
+        "a": {"type": "int", "min": 1, "max": 9, "default": 3},
+        "frames": {"type": "int", "min": 1, "max": 6, "default": 1, "sample": False},
+    }
+    p = forge.sample_params(specs, _random.Random(0))
+    assert p["frames"] == 1
+    mutated = quality.mutate_params({"a": 5, "frames": 4}, specs,
+                                    _random.Random(0), jitter=0.9)
+    assert mutated["frames"] == 4  # 非采样参数在进化中保持不变
+
+
 def test_export_sheet_wraps_rows(tmp_path):
     src = tmp_path / "src"
     src.mkdir()
