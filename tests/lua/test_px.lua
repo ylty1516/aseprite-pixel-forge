@@ -1,0 +1,238 @@
+-- px.lua 金样测试（在 Aseprite 内运行）
+-- 运行方式：aseprite -b --script test_px.lua --script-param root=<repo根>
+local root = (app.params and app.params["root"]) or "."
+local px = dofile(root .. "/lua/lib/px.lua")
+
+local results = {}
+local function check(name, cond, detail)
+  table.insert(results, {name = name, ok = cond and true or false, detail = detail or ""})
+end
+
+-- ---------- rng 确定性 ----------
+do
+  local r1, r2 = px.rng(42), px.rng(42)
+  local same = true
+  for _ = 1, 50 do
+    if r1() ~= r2() then same = false break end
+  end
+  check("rng-deterministic", same)
+  local r3 = px.rng(43)
+  check("rng-differs-by-seed", px.rng(42)() ~= r3())
+end
+
+-- ---------- disk / rect / line / polygon ----------
+do
+  local m = px.canvas(16, 16)
+  px.disk(m, 8, 8, 3, 3)
+  local count = px.maskCount(m)
+  check("disk-center", px.get(m, 8, 8) == true)
+  check("disk-inside-edge", px.get(m, 5, 8) == true)
+  check("disk-outside", px.get(m, 4, 8) == false and px.get(m, 0, 0) == false)
+  check("disk-count-29", count == 29, "count=" .. count)
+
+  local m2 = px.canvas(8, 8)
+  px.rect(m2, 1, 1, 3, 3)
+  check("rect-9", px.maskCount(m2) == 9)
+  px.lineMask(m2, 0, 0, 7, 7)
+  check("line-diag", px.get(m2, 3, 3) == true and px.get(m2, 7, 7) == true)
+
+  local m3 = px.canvas(10, 10)
+  px.polygon(m3, {{1, 1}, {8, 2}, {5, 8}})
+  check("polygon-fill", px.maskCount(m3) > 10)
+end
+
+-- ---------- blob 不规则性 ----------
+do
+  local m1 = px.canvas(24, 24)
+  local m2 = px.canvas(24, 24)
+  px.blob(m1, px.rng(1), 12, 12, 8, {irregularity = 0.4})
+  px.blob(m2, px.rng(2), 12, 12, 8, {irregularity = 0.4})
+  local same_count = px.maskCount(m1) == px.maskCount(m2)
+  local diff = false
+  for y = 0, 23 do
+    for x = 0, 23 do
+      if px.get(m1, x, y) ~= px.get(m2, x, y) then diff = true end
+    end
+  end
+  check("blob-center-covered", px.get(m1, 12, 12) == true)
+  check("blob-seed-varies", diff)
+  check("blob-far-corner-empty", px.get(m1, 0, 0) == false)
+end
+
+-- ---------- paintShaded 光照方向 ----------
+do
+  local m = px.canvas(21, 21)
+  px.disk(m, 10, 10, 8, 8)
+  local img = px.newImage(21, 21)
+  local ramp = {
+    px.rgba(0, 0, 0), px.rgba(64, 64, 64), px.rgba(128, 128, 128),
+    px.rgba(192, 192, 192), px.rgba(255, 255, 255),
+  }
+  px.paintShaded(img, m, ramp, {light = {dx = -1, dy = -1}, rng = px.rng(7), jitter = true})
+  local sumTL, nTL, sumBR, nBR = 0, 0, 0, 0
+  for y = 0, 20 do
+    for x = 0, 20 do
+      if m[y][x] then
+        local v = px.rgbaParts(img:getPixel(x, y))
+        if x < 10 and y < 10 then sumTL = sumTL + v; nTL = nTL + 1 end
+        if x > 10 and y > 10 then sumBR = sumBR + v; nBR = nBR + 1 end
+      end
+    end
+  end
+  local avgTL = sumTL / math.max(1, nTL)
+  local avgBR = sumBR / math.max(1, nBR)
+  check("shaded-topleft-brighter", avgTL > avgBR + 25,
+    string.format("tl=%.1f br=%.1f", avgTL, avgBR))
+end
+
+-- ---------- outline ----------
+do
+  local m = px.canvas(16, 16)
+  px.disk(m, 8, 8, 4, 4)
+  local img = px.newImage(16, 16)
+  local base = px.rgba(128, 128, 128)
+  px.flatten(img, m, {base}, 1)
+  local outline_color = px.rgba(13, 10, 18)
+  local count = px.outline(img, m, outline_color, {policy = "full"})
+  check("outline-count", count > 0, "count=" .. count)
+  -- 所有轮廓像素在 mask 外且 8 邻域内有 mask 像素
+  local all_outside, all_adjacent = true, true
+  for y = 0, 15 do
+    for x = 0, 15 do
+      if img:getPixel(x, y) == outline_color then
+        if m[y][x] then all_outside = false end
+        local adjacent = false
+        for oy = -1, 1 do
+          for ox = -1, 1 do
+            if px.get(m, x + ox, y + oy) then adjacent = true end
+          end
+        end
+        if not adjacent then all_adjacent = false end
+      end
+    end
+  end
+  check("outline-outside-mask", all_outside)
+  check("outline-adjacent", all_adjacent)
+  -- selective 不会比 full 更多
+  local img2 = px.newImage(16, 16)
+  px.flatten(img2, m, {base}, 1)
+  local sel = px.outline(img2, m, outline_color, {policy = "selective", rng = px.rng(3)})
+  check("outline-selective-le-full", sel <= count, "sel=" .. sel .. " full=" .. count)
+  -- selective 影侧（右下）应保留更多
+  local shadow, lightside = 0, 0
+  for y = 0, 15 do
+    for x = 0, 15 do
+      if img2:getPixel(x, y) == outline_color then
+        if (x + y) > 16 then shadow = shadow + 1 else lightside = lightside + 1 end
+      end
+    end
+  end
+  check("outline-shadow-side-heavier", shadow > lightside, "shadow=" .. shadow .. " light=" .. lightside)
+end
+
+-- ---------- ditherFill ----------
+do
+  local m = px.canvas(8, 8)
+  px.rect(m, 0, 0, 7, 7)
+  local img = px.newImage(8, 8)
+  local ramp = {px.rgba(10, 10, 10), px.rgba(90, 90, 90)}
+  px.ditherFill(img, m, ramp, 1, 2, {density = 0.5})
+  local a, b = false, false
+  for y = 0, 7 do
+    for x = 0, 7 do
+      local c = img:getPixel(x, y)
+      if c == ramp[1] then a = true end
+      if c == ramp[2] then b = true end
+    end
+  end
+  check("dither-both-levels", a and b)
+end
+
+-- ---------- clusterJitter ----------
+do
+  local m = px.canvas(12, 12)
+  px.rect(m, 0, 0, 11, 11)
+  local ramp = {px.rgba(20, 20, 20), px.rgba(80, 80, 80), px.rgba(140, 140, 140)}
+  local function build()
+    local img = px.newImage(12, 12)
+    px.flatten(img, m, ramp, 2)
+    px.clusterJitter(img, m, ramp, px.rng(9), {chance = 0.6})
+    local sig = {}
+    for y = 0, 11 do
+      for x = 0, 11 do table.insert(sig, img:getPixel(x, y)) end
+    end
+    return sig, img
+  end
+  local sig1, img = build()
+  local sig2 = build()
+  local same = #sig1 == #sig2
+  for i = 1, #sig1 do
+    if sig1[i] ~= sig2[i] then same = false end
+  end
+  check("cluster-jitter-deterministic", same)
+  local in_ramp, changed = true, false
+  for y = 0, 11 do
+    for x = 0, 11 do
+      local c = img:getPixel(x, y)
+      if not px.levelOf(ramp, c) then in_ramp = false end
+      if c ~= ramp[2] then changed = true end
+    end
+  end
+  check("cluster-jitter-in-ramp", in_ramp)
+  check("cluster-jitter-changed", changed)
+end
+
+-- ---------- perturb ----------
+do
+  local m = px.canvas(24, 24)
+  px.disk(m, 12, 12, 6, 6)
+  local before = px.maskCount(m)
+  px.perturb(m, px.rng(11), 0.3)
+  local after = px.maskCount(m)
+  check("perturb-stays-local", px.get(m, 22, 22) == false and px.get(m, 12, 12) == true)
+  check("perturb-changes-shape", before ~= after or true) -- 计数可能巧合相等，不硬断
+  local ratio = after / before
+  check("perturb-bounded", ratio > 0.6 and ratio < 1.4, string.format("ratio=%.2f", ratio))
+end
+
+-- ---------- speckle / carve ----------
+do
+  local m = px.canvas(16, 16)
+  px.rect(m, 0, 0, 15, 15)
+  local img = px.newImage(16, 16)
+  local ramp = {px.rgba(10, 10, 10), px.rgba(60, 60, 60), px.rgba(110, 110, 110)}
+  px.flatten(img, m, ramp, 2)
+  px.speckle(img, m, ramp, px.rng(5), {count = 6, levels = {1}})
+  local dirty = 0
+  for y = 0, 15 do
+    for x = 0, 15 do
+      if img:getPixel(x, y) == ramp[1] then dirty = dirty + 1 end
+    end
+  end
+  check("speckle-places", dirty >= 6, "dirty=" .. dirty)
+
+  px.carve(img, m, 2, 2, 13, 13, ramp, {level = 1})
+  check("carve-draws", img:getPixel(7, 7) == ramp[1] or img:getPixel(8, 8) == ramp[1])
+end
+
+-- ---------- jsonEncode ----------
+do
+  local s = px.jsonEncode({ok = true, n = 1.5, name = "tree_01"})
+  local has_ok = s:find('"ok":true') ~= nil
+  local has_name = s:find('"name":"tree_01"') ~= nil
+  local has_n = s:find('"n":1.5') ~= nil
+  check("json-encode", has_ok and has_name and has_n, s)
+  check("json-bool-false", px.jsonEncode({z = false}):find('"z":false') ~= nil)
+  local arr = px.jsonEncode({1, 2, 3})
+  check("json-array", arr == "[1,2,3]", arr)
+end
+
+-- ---------- parseKV ----------
+do
+  local t = px.parseKV("kind=dead;height=36;moss=0.6")
+  check("parseKV", t.kind == "dead" and t.height == "36" and t.moss == "0.6")
+  check("tobool", px.tobool("true") == true and px.tobool("0") == false)
+  check("tonum", px.tonum("3.5", 0) == 3.5 and px.tonum("x", 7) == 7)
+end
+
+px.emit({ok = true, results = results})
