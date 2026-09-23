@@ -172,3 +172,14 @@ mask 驱动：配方先构造形状掩码（2D 表），库统一做**明暗/轮
 | 配方质量参差 | rubric 硬门槛 + 进化轮 + 人工抽检记录 |
 | Aseprite 版本差异 | 只依赖 1.3.x 稳定 CLI 特性；doctor 冒烟检测并报版本 |
 | 大规模候选 token 消耗 | 数值剪枝先行、联系表批阅、预算可配 |
+
+## 11. 实现偏差记录（v1 落地修正，2026-09-23）
+
+以下差异已在实现中采纳并同步到 SKILL.md / references，作为正式口径：
+
+1. **命令口径**：`evolve` 无 `--rounds`（单轮进化，多轮=多次调用）；`export` 用 `--sheet` 布尔开关（另有 `--sheet-cols` / `--prefix`）；`preview` 用 `--out`。
+2. **outline 字段**：`outline.color` 为必填（替代本草案中的 `color_source`）。
+3. **技法库命名**：无独立 `ellipse`（由 `disk(m,cx,cy,rx,ry)` 覆盖）；`clusterize` 实现为 `clusterJitter`（2×2 块级）。
+4. **runner**：`--script-param` 必须置于 `--script` **之前**（Aseprite 1.3.18 实测硬要求）；查找顺序为 env → config → PATH → 常见路径。
+5. **色板规模**：基准 style 为 13 ramp × 5 阶 = 65 色（±outline）。
+6. **已知缺口（记入 v1.1 候选，不在 v1 承诺内）**：tile 拼接边检；manifest `score` 为占位字段（`selected` 由 evolve/export 回写）；人物/建筑品类按路线图 v2。

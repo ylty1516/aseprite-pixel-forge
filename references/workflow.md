@@ -14,7 +14,7 @@ python scripts/forge.py style validate styles/left-hand-of-god.json
 
 ```bash
 python scripts/forge.py gen <recipe> --style <style.json> --out <build目录> \
-    --count 24 --seed 1000 [--param kind=dead;height=36]
+    --count 24 --seed 1000 --param "kind=dead;height=36"   # 多个固定参数用引号包裹
 ```
 
 - `--count 24`：单轮建议 16–32（质量机制靠"多生成 + 选优"）；

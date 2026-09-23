@@ -16,7 +16,7 @@ local function paint_grass(px, ctx, img, m)
         img:putPixel(x, y - i, ramp[px.rngInt(rng, 3, 5)])
       end
     end
-    if rng() < 0.5 then
+    if rng() < 0.5 and x + 1 <= 31 then
       img:putPixel(x + 1, y, ramp[3])
     end
   end

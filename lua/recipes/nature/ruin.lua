@@ -168,6 +168,10 @@ local function gen_arch(ctx, m)
   local a1_base = math.rad(px.rngInt(rng, 315, 345))  -- 右端（断口）
 
   local arch = px.canvas(48, 48)
+  -- 断口噪声按半径分档预生成：rng 消耗量与画布尺寸无关，确定性更稳健
+  local bins = 10
+  local bin_noise = {}
+  for i = 0, bins do bin_noise[i] = (rng() - 0.5) * 0.14 end
   for y = 0, 47 do
     for x = 0, 47 do
       local dx, dy = x - cx, y - cy
@@ -176,7 +180,9 @@ local function gen_arch(ctx, m)
         local a = math.atan(dy, dx)
         if a < 0 then a = a + math.pi * 2 end
         -- 断口沿半径抖动 → 锯齿碎裂感
-        local a1 = a1_base + (dist - r_in) * 0.03 + (rng() - 0.5) * 0.12
+        local bin = math.max(0, math.min(bins,
+          math.floor((dist - r_in) / math.max(0.001, r_out - r_in) * bins)))
+        local a1 = a1_base + (dist - r_in) * 0.03 + bin_noise[bin]
         if a >= a0 and a <= a1 then
           px.set(arch, x, y, true)
         end

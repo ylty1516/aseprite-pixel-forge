@@ -67,10 +67,14 @@ local function draw_canopy(px, m, rng, W, H, p, cx, trunk_top)
     local hx = cx + (rng() - 0.5) * canopy_r * 2.4
     local hy = cy + (rng() - 0.5) * canopy_r * 1.6
     local hr = px.rngRange(rng, 0.8, 1.9)
-    for y = math.floor(hy - hr), math.ceil(hy + hr) do
-      for x = math.floor(hx - hr), math.ceil(hx + hr) do
+    local y0 = math.max(0, math.floor(hy - hr))
+    local y1 = math.min(H - 1, math.ceil(hy + hr))
+    local x0 = math.max(0, math.floor(hx - hr))
+    local x1 = math.min(W - 1, math.ceil(hx + hr))
+    for y = y0, y1 do
+      for x = x0, x1 do
         local dx, dy = x - hx, y - hy
-        if dx * dx + dy * dy <= hr * hr then m[y] [x] = false end
+        if dx * dx + dy * dy <= hr * hr then m[y][x] = false end
       end
     end
   end

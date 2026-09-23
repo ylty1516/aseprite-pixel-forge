@@ -1,0 +1,77 @@
+{
+  "recipe": "tree",
+  "prefix": "tree_evolved",
+  "style": "left-hand-of-god",
+  "exported": [
+    "tree_evolved_01.png",
+    "tree_evolved_02.png"
+  ],
+  "sources": [
+    "tree_001.aseprite",
+    "tree_002.aseprite"
+  ],
+  "sheet": {
+    "png": "tree_evolved_sheet.png",
+    "json": "tree_evolved_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "tree_001",
+      "seed": 6554,
+      "params": {
+        "asymmetry": 0.0377,
+        "canopy": 0.55,
+        "height": 37,
+        "kind": "broadleaf",
+        "lean": 0.0312,
+        "moss": 0.6661
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 1027,
+        "colors": 12,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 57.0,
+        "sha256": "2e6bb4afe58aa7e1f26a1d28da42d3d04bb7a4330ea16fc0fbe5effb07a2fbdc"
+      }
+    },
+    {
+      "id": "tree_002",
+      "seed": 6558,
+      "params": {
+        "asymmetry": 0,
+        "canopy": 0.5145,
+        "height": 32,
+        "kind": "conifer",
+        "lean": -0.1095,
+        "moss": 0.8764
+      },
+      "metrics": {
+        "size": [
+          40,
+          48
+        ],
+        "pixels": 730,
+        "colors": 10,
+        "empty": false,
+        "edges": [
+          "bottom"
+        ],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 46.4,
+        "sha256": "c3e8b01456dd737b616f46e9f022d3955ed6abdf6fb8b9fc5d1649fb5b30c544"
+      }
+    }
+  ]
+}

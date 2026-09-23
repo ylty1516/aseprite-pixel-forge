@@ -1,0 +1,28 @@
+{
+  "frames": {
+    "tree_evolved_01": {
+      "x": 0,
+      "y": 0,
+      "w": 36,
+      "h": 42
+    },
+    "tree_evolved_02": {
+      "x": 36,
+      "y": 0,
+      "w": 32,
+      "h": 35
+    }
+  },
+  "meta": {
+    "image": "tree_evolved_sheet.png",
+    "size": [
+      72,
+      42
+    ],
+    "frame_count": 2,
+    "cell": [
+      36,
+      42
+    ]
+  }
+}

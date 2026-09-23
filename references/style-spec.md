@@ -32,7 +32,7 @@
 | `canvas.default_size` | ✅ | 无 recipe.size 时的默认画布边长 |
 | `lighting.direction` | ✅ | `top-left` / `top` / `top-right` / `left` / `right` / `bottom-left` / `bottom` / `bottom-right` |
 | `outline.policy` | ✅ | `selective`（影侧实、光侧断）/ `full` / `none` |
-| `outline.color` | | 轮廓色（通常 = shadow 最深阶） |
+| `outline.color` | ✅ | 轮廓色（通常 = shadow 最深阶，如 `#0d0a12`） |
 | `detail.dither` | | `none` / `sparse` / `medium`（提示生成器抖动密度） |
 | `palette.ramps` | ✅ | 键=材质名，值=**暗→亮** 5 阶 hex 数组（最少 2 阶） |
 | `palette.utility` | | 额外单色（outline 等） |

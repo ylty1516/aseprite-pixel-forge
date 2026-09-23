@@ -26,7 +26,7 @@ from aseprite_runner import (  # noqa: E402
 )
 from exporters import export_pngs, export_sheet  # noqa: E402
 from quality import (  # noqa: E402
-    contact_sheet, load_manifest, mutate_params, png_metrics, save_manifest,
+    contact_sheet, mutate_params, png_metrics, save_manifest,
 )
 from style import StyleError, export_gpl, load_style, write_style_lua  # noqa: E402
 
@@ -42,6 +42,20 @@ for _stream in (sys.stdout, sys.stderr):
         _stream.reconfigure(encoding="utf-8", errors="replace")
     except (AttributeError, ValueError):
         pass
+
+
+class ForgeError(RuntimeError):
+    """面向用户的友好错误（不打印 traceback）。"""
+
+
+def _load_manifest_or_die(build):
+    p = Path(build) / "manifest.json"
+    if not p.is_file():
+        raise ForgeError(f"找不到 {p}\n  → 请先运行 forge gen 生成候选（或检查 --out 路径是否正确）")
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise ForgeError(f"manifest 损坏，无法解析：{p}\n  {e}") from e
 
 
 # ---------------------------------------------------------------- 公共
@@ -63,7 +77,7 @@ def resolve_recipe(name: str) -> Path:
         if candidate.is_file():
             return candidate.resolve()
     available = sorted(str(rel.as_posix()) for rel in RECIPES.rglob("*.lua"))
-    raise SystemExit(f"未找到配方 {name!r}。可用配方：\n  " + "\n  ".join(available))
+    raise ForgeError(f"未找到配方 {name!r}。可用配方：\n  " + "\n  ".join(available))
 
 
 def describe_recipe(recipe_path: Path, style_lua: Path, timeout: int = 60) -> dict:
@@ -73,7 +87,7 @@ def describe_recipe(recipe_path: Path, style_lua: Path, timeout: int = 60) -> di
     }, timeout=timeout)
     forge = res.get("forge")
     if not forge or not forge.get("ok"):
-        raise SystemExit("describe 失败：\n" + res.get("stdout", "") + res.get("stderr", ""))
+        raise ForgeError("describe 失败：\n" + res.get("stdout", "") + res.get("stderr", ""))
     return forge["describe"]
 
 
@@ -98,11 +112,22 @@ def sample_params(specs: dict, rng: random.Random) -> dict:
 def coerce_param(spec: dict, raw: str):
     t = spec.get("type")
     if t == "int":
-        return int(float(raw))
+        try:
+            return int(float(raw))
+        except ValueError:
+            raise ValueError(f"期望整数（如 32）") from None
     if t == "float":
-        return float(raw)
+        try:
+            return float(raw)
+        except ValueError:
+            raise ValueError(f"期望小数（如 0.5）") from None
     if t == "bool":
         return str(raw).lower() in ("1", "true", "yes", "on")
+    if t == "choice":
+        values = list(spec.get("values", []))
+        if values and raw not in values:
+            raise ValueError(f"必须是 {'/'.join(values)} 之一")
+        return raw
     return raw
 
 
@@ -126,10 +151,10 @@ def parse_indexes(text: str, limit: int) -> list:
             continue
         n = int(piece)
         if n < 1 or n > limit:
-            raise SystemExit(f"序号 {n} 超出范围 1..{limit}")
+            raise ForgeError(f"序号 {n} 超出范围 1..{limit}")
         idxs.append(n)
     if not idxs:
-        raise SystemExit("未给出有效序号")
+        raise ForgeError("未给出有效序号")
     return idxs
 
 
@@ -148,13 +173,25 @@ def run_batch(recipe_path: Path, style_lua: Path, style_file: Path, out_dir: Pat
             "seed": item["seed"], "name": name, "out": out.as_posix(),
             "params": fmt_params(item["params"]),
         }, timeout=timeout)
-        forge = res.get("forge") or {}
+        forge = res.get("forge")
+        forge = forge if isinstance(forge, dict) else {}
+        error = None
+        if not forge.get("ok"):
+            if forge.get("error"):
+                error = str(forge["error"])
+            elif res.get("timeout"):
+                error = f"超时（>{timeout}s），进程已终止"
+            else:
+                detail = (res.get("stderr") or res.get("stdout") or "").strip()
+                error = detail[-500:] if detail else f"未知错误（exit={res.get('code')}）"
+        files = forge.get("files") or {}
+        files = {k: files[k] for k in ("png", "aseprite") if k in files}
         entry = {
             "id": name, "index": i + 1, "seed": item["seed"],
             "params": item["params"], "ok": bool(forge.get("ok")),
-            "error": forge.get("error"),
-            "files": forge.get("files") or {},
-            "metrics": None, "selected": False,
+            "error": error, "timeout": bool(res.get("timeout")),
+            "files": files,
+            "metrics": None, "selected": False, "score": None,
         }
         cands.append(entry)
         status = "ok" if entry["ok"] else f"FAIL: {entry['error']}"
@@ -233,9 +270,12 @@ def cmd_gen(args) -> int:
     for piece in args.param or []:
         key, _, raw = piece.partition("=")
         if key not in specs:
-            print(f"⚠ 未知参数 {key!r}（配方支持：{', '.join(specs)}）")
-            continue
-        fixed[key] = coerce_param(specs[key], raw)
+            raise ForgeError(
+                f"未知参数 {key!r}（配方支持：{', '.join(sorted(specs)) or '无'}）")
+        try:
+            fixed[key] = coerce_param(specs[key], raw)
+        except ValueError as e:
+            raise ForgeError(f"参数 {key}={raw!r} 非法：{e}") from e
 
     items = []
     for i in range(args.count):
@@ -246,13 +286,20 @@ def cmd_gen(args) -> int:
 
     print(f"配方 {desc['name']}（{desc['category']}），画布 {desc['size'][0]}x{desc['size'][1]}，"
           f"候选 {args.count} 个，seed {args.seed}")
-    run_batch(recipe_path, style_lua, style_file, out, desc, items, timeout=args.timeout)
+    manifest = run_batch(recipe_path, style_lua, style_file, out, desc, items,
+                         timeout=args.timeout)
+    ok_n = sum(1 for c in manifest["candidates"] if c["ok"])
+    if ok_n == 0:
+        print("✗ 全部候选生成失败（详见上方错误与 manifest.json）")
+        return 1
+    if ok_n < len(items):
+        print(f"⚠ {len(items) - ok_n} 个候选失败，可检查 manifest.json 的 error 字段")
     return 0
 
 
 def cmd_check(args) -> int:
     build = Path(args.build)
-    manifest = load_manifest(build)
+    manifest = _load_manifest_or_die(build)
     style_file = Path(args.style).resolve() if args.style else Path(manifest["style"])
     style = load_style(style_file)
 
@@ -292,7 +339,7 @@ def cmd_check(args) -> int:
 
 def cmd_preview(args) -> int:
     build = Path(args.build)
-    manifest = load_manifest(build)
+    manifest = _load_manifest_or_die(build)
     cands = [c for c in manifest["candidates"]
              if c.get("ok") and c.get("files", {}).get("png")
              and Path(c["files"]["png"]).is_file()]
@@ -318,12 +365,16 @@ def cmd_preview(args) -> int:
 
 def cmd_evolve(args) -> int:
     parent_dir = Path(args.build)
-    parent_manifest = load_manifest(parent_dir)
+    parent_manifest = _load_manifest_or_die(parent_dir)
     parents_all = parent_manifest["candidates"]
     keep = parse_indexes(args.keep, len(parents_all))
     for idx in keep:
         if not parents_all[idx - 1].get("ok"):
-            raise SystemExit(f"父本 {idx} 生成失败，不能进化")
+            raise ForgeError(f"父本 {idx} 生成失败，不能进化")
+    # 标记父本为已选用（写入父轮 manifest，落实 selected 契约）
+    for idx in keep:
+        parents_all[idx - 1]["selected"] = True
+    save_manifest(parent_dir, parent_manifest)
 
     style_file = Path(parent_manifest["style"]).resolve()
     out = Path(args.out).resolve()
@@ -347,7 +398,7 @@ def cmd_evolve(args) -> int:
 
 def cmd_export(args) -> int:
     build = Path(args.build)
-    manifest = load_manifest(build)
+    manifest = _load_manifest_or_die(build)
     cands_all = manifest["candidates"]
     prefix = args.prefix or manifest["recipe"]
     style_file = Path(args.style).resolve() if args.style else Path(manifest["style"])
@@ -364,16 +415,23 @@ def cmd_export(args) -> int:
         if not c.get("ok") or not png or not Path(png).is_file():
             problems.append(f"{c['id']} 生成失败")
             continue
-        if not c.get("metrics"):
-            c["metrics"] = png_metrics(png, style)
+        # 总是重算指标（避免旧 style/旧 run 的陈旧判定）
+        c["metrics"] = png_metrics(png, style)
         if not c["metrics"]["palette_ok"]:
             problems.append(f"{c['id']} 色板违规x{c['metrics']['palette_bad']}")
+        elif c["metrics"]["empty"]:
+            problems.append(f"{c['id']} 空图")
     if problems and not args.force:
-        print("✗ 导出被拒绝（色板纪律）：")
+        print("✗ 导出被拒绝（色板纪律/空图）：")
         for p in problems:
             print("   -", p)
         print("  修复配方后重跑，或 --force 强行导出。")
         return 1
+
+    # 标记导出项为已选用（写入 manifest，落实 selected 契约）
+    for c in picks:
+        c["selected"] = True
+    save_manifest(build, manifest)
 
     out = Path(args.out)
     png_paths = [c["files"]["png"] for c in picks if c.get("files", {}).get("png")]
@@ -381,10 +439,12 @@ def cmd_export(args) -> int:
 
     src_dir = out / "source_aseprite"
     src_dir.mkdir(parents=True, exist_ok=True)
+    exported_sources = []
     for c in picks:
         ase = c.get("files", {}).get("aseprite")
         if ase and Path(ase).is_file():
             shutil.copyfile(ase, src_dir / Path(ase).name)
+            exported_sources.append(Path(ase).name)
 
     sheet_info = None
     if args.sheet and exported:
@@ -397,7 +457,7 @@ def cmd_export(args) -> int:
         "prefix": prefix,
         "style": style["name"],
         "exported": [str(p.name) for p in exported],
-        "sources": sorted(p.name for p in src_dir.iterdir()),
+        "sources": sorted(exported_sources),
         "sheet": {"png": sheet_info[0].name, "json": sheet_info[1].name} if sheet_info else None,
         "candidates": [
             {"id": c["id"], "seed": c["seed"], "params": c["params"],
@@ -440,7 +500,8 @@ def cmd_install(args) -> int:
         print(f"✓ 已 junction 安装（开发模式，改动即时生效）→ {target}")
     else:
         ignore = shutil.ignore_patterns(
-            ".git", "__pycache__", ".pytest_cache", "forge-build", "*.pyc")
+            ".git", "__pycache__", ".pytest_cache", "forge-build", "*.pyc",
+            "docs")
         shutil.copytree(ROOT, target, ignore=ignore)
         print(f"✓ 已复制安装 → {target}")
         print(f"  更新方式：重跑 forge.py install --force")
@@ -494,7 +555,7 @@ def cmd_doctor(args) -> int:
                 else:
                     print(f"✗ 冒烟图异常：{m}")
                     ok = False
-        except SystemExit as e:
+        except (ForgeError, SystemExit) as e:
             print(f"✗ 冒烟失败: {e}")
             ok = False
 
@@ -577,6 +638,15 @@ def main(argv=None) -> int:
     except StyleError as e:
         print(f"✗ {e}")
         return 1
+    except AsepriteNotFound as e:
+        print(f"✗ {e}")
+        return 1
+    except ForgeError as e:
+        print(f"✗ {e}")
+        return 1
+    except KeyboardInterrupt:
+        print("\n已取消。")
+        return 130
 
 
 if __name__ == "__main__":

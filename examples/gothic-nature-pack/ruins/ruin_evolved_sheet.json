@@ -1,0 +1,28 @@
+{
+  "frames": {
+    "ruin_evolved_01": {
+      "x": 0,
+      "y": 0,
+      "w": 23,
+      "h": 39
+    },
+    "ruin_evolved_02": {
+      "x": 33,
+      "y": 0,
+      "w": 33,
+      "h": 22
+    }
+  },
+  "meta": {
+    "image": "ruin_evolved_sheet.png",
+    "size": [
+      66,
+      39
+    ],
+    "frame_count": 2,
+    "cell": [
+      33,
+      39
+    ]
+  }
+}

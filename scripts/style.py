@@ -60,7 +60,9 @@ def validate_style(style: dict) -> list:
     else:
         if outline.get("policy") not in OUTLINE_POLICIES:
             errors.append(f"outline.policy 必须是 {sorted(OUTLINE_POLICIES)} 之一")
-        if "color" in outline:
+        if not outline.get("color"):
+            errors.append("outline.color 必填（轮廓色，如 #0d0a12）")
+        else:
             try:
                 parse_hex(outline["color"])
             except StyleError as e:
@@ -73,6 +75,8 @@ def validate_style(style: dict) -> list:
     palette = style.get("palette")
     if not isinstance(palette, dict) or not isinstance(palette.get("ramps"), dict):
         errors.append("缺少 palette.ramps")
+    elif not palette["ramps"]:
+        errors.append("palette.ramps 不能为空（至少一条色阶）")
     else:
         for ramp_name, ramp in palette["ramps"].items():
             if not isinstance(ramp, list) or len(ramp) < 2:

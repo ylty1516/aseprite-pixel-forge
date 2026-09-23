@@ -13,7 +13,7 @@ py -3 scripts/forge.py doctor                     # 环境自检
 py -3 scripts/forge.py style validate styles/left-hand-of-god.json
 py -3 scripts/forge.py gen tree --style styles/left-hand-of-god.json --out forge-build/tree --count 24 --seed 1000
 py -3 scripts/forge.py check forge-build/tree --style styles/left-hand-of-god.json
-py -3 scripts/forge.py preview forge-build/tree --sheet forge-build/tree-preview.png
+py -3 scripts/forge.py preview forge-build/tree --scale 6 --out forge-build/tree-preview.png
 py -3 scripts/forge.py install                    # 安装为全局 skill
 ```
 

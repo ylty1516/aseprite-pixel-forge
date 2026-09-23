@@ -1,0 +1,67 @@
+{
+  "recipe": "ruin",
+  "prefix": "ruin_evolved",
+  "style": "left-hand-of-god",
+  "exported": [
+    "ruin_evolved_01.png",
+    "ruin_evolved_02.png"
+  ],
+  "sources": [
+    "ruin_001.aseprite",
+    "ruin_003.aseprite"
+  ],
+  "sheet": {
+    "png": "ruin_evolved_sheet.png",
+    "json": "ruin_evolved_sheet.json"
+  },
+  "candidates": [
+    {
+      "id": "ruin_001",
+      "seed": 7554,
+      "params": {
+        "decay": 0.026,
+        "kind": "column",
+        "moss": 0.6068
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 575,
+        "colors": 7,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 47.3,
+        "sha256": "f645bf76c42ddb66b3f4cebc3307cfb35e74f9e9cf77f102c826091d57869ebc"
+      }
+    },
+    {
+      "id": "ruin_003",
+      "seed": 7563,
+      "params": {
+        "decay": 0.1996,
+        "kind": "arch",
+        "moss": 0.2015
+      },
+      "metrics": {
+        "size": [
+          48,
+          48
+        ],
+        "pixels": 346,
+        "colors": 9,
+        "empty": false,
+        "edges": [],
+        "palette_ok": true,
+        "palette_bad": 0,
+        "palette_bad_colors": [],
+        "brightness": 46.3,
+        "sha256": "967e78160cc668a3be4d0cae21d31b1fee2fd100aadc8419b4aaaba496f1b21f"
+      }
+    }
+  ]
+}

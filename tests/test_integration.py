@@ -73,6 +73,10 @@ def test_evolve_and_export(aseprite_path, tmp_path):
     out2 = tmp_path / "g2"
     r = run_forge("evolve", str(build), "--keep", "1,3", "--out", str(out2))
     assert r.returncode == 0, r.stdout + r.stderr
+    # 父本轮被标记 selected（manifest 契约）
+    m1 = _manifest(build)
+    selected = {c["id"] for c in m1["candidates"] if c["selected"]}
+    assert selected == {"smoke_001", "smoke_003"}
     m2 = _manifest(out2)
     assert m2["round"] == 2
     assert m2["parents"] == ["smoke_001", "smoke_003"]

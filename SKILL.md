@@ -11,6 +11,9 @@ license: MIT
 
 ## 快速开始
 
+> 命令均在 **skill 根目录** 执行；`--out` 指向你自己的工作区（如 `~/forge-build/...`），
+> 不要写进 skill 安装目录（`~/.agents/skills/...` 可能是只读共享位置）。
+
 ```bash
 # 0) 环境（一次）
 python scripts/forge.py doctor
