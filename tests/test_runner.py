@@ -44,6 +44,8 @@ def test_build_args_order_and_params():
     args = build_args(Path("aseprite.exe"), Path("gen.lua"), {"seed": 1001, "name": "t1"})
     assert args[0] == "aseprite.exe"
     assert "-b" in args
+    # 关键：--script-param 必须在 --script 之前（Aseprite 1.3.x 行为）
+    assert args.index("--script-param") < args.index("--script")
     assert args[args.index("--script") + 1] == "gen.lua"
     assert args.count("--script-param") == 2
     assert "seed=1001" in args and "name=t1" in args

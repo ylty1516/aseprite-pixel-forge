@@ -99,9 +99,12 @@ def find_aseprite() -> Path:
 
 def build_args(aseprite: Path, script: Path, params: dict | None = None,
                extra: list | None = None) -> list:
-    args = [str(aseprite), "-b", "--script", str(script)]
+    # 注意：Aseprite 1.3.x 要求 --script-param 出现在 --script 之前，
+    # 否则参数不会进入 app.params（实测 1.3.18.6）。
+    args = [str(aseprite), "-b"]
     for key, value in (params or {}).items():
         args += ["--script-param", f"{key}={value}"]
+    args += ["--script", str(script)]
     if extra:
         args += [str(x) for x in extra]
     return args

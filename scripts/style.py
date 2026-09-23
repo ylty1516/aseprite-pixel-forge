@@ -155,7 +155,7 @@ def write_style_lua(style: dict, out_path) -> Path:
     )
     parts.append(f"  dither = {_quote(style.get('detail', {}).get('dither', 'sparse'))},")
     parts.append("  ramps = {")
-    for ramp_name, ramp in style["palette"]["ramps"].items():
+    for ramp_name, ramp in sorted(style["palette"]["ramps"].items()):
         colors = ", ".join(_hex_to_rgba_expr(c) for c in ramp)
         parts.append(f"    {ramp_name} = {{ {colors} }},")
     parts.append("  },")
