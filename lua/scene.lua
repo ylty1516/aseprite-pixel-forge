@@ -203,6 +203,15 @@ local function run()
           colossal_scale = layer.colossal_scale,
         })
 
+      elseif t == "viaduct" then
+        px.viaduct(img, ramps, layer_rng(), {
+          x0 = layer.x0, x1 = layer.x1, y = layer.y,
+          deck_h = layer.deck_h, base = layer.base,
+          broken = layer.broken, broken_count = layer.broken_count,
+          debris = layer.debris, pier_min = layer.pier_min, pier_max = layer.pier_max,
+          ramp = layer.ramp or "stone_warm", level = layer.level or 3,
+        })
+
       elseif t == "cables" then
         px.mega_cable(img, ramps, {
           x0 = layer.x0, x1 = layer.x1,
