@@ -1251,6 +1251,120 @@ function px.viaduct(img, ramps, rng, opts)
   end
 end
 
+-- 巨型钢骨架大厅：外露柱/斜撑/屋面绗架，内部透空（钢铁巨构的典型阅读）
+local function mega_steelhall(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local bay = px.rngInt(rng, 12, 18)
+  local roof_h = 4
+  local nbay = math.max(1, math.floor(w / bay))
+  for b = 0, nbay - 1 do
+    local bx = x + b * bay
+    -- 两侧立柱
+    for yy = math.max(0, top), base - 1 do
+      if bx >= 0 and bx < img.width then img:putPixel(bx, yy, c_hi) end
+      local rx = bx + bay - 1
+      if rx >= 0 and rx < img.width then img:putPixel(rx, yy, c_lo) end
+    end
+    -- 屋面绗架（上/下弦 + 斜腹杆）
+    for u = 0, bay - 1 do
+      local xx = bx + u
+      if xx >= 0 and xx < img.width then
+        local uu = u / math.max(1, bay - 1)
+        for yy = top, top + roof_h - 1 do
+          local v = (yy - top) / roof_h
+          local c2 = nil
+          if yy == top then c2 = c_hi
+          elseif yy == top + roof_h - 1 then c2 = c
+          elseif math.abs(v - uu) < 0.24 or math.abs(v - (1 - uu)) < 0.24 then c2 = c_lo end
+          if c2 then img:putPixel(xx, yy, c2) end
+        end
+      end
+    end
+    -- 墙身 X 斜撑（中下带）
+    local y1 = top + roof_h + math.floor((base - top - roof_h) * 0.18)
+    local y2 = base - math.floor((base - top) * 0.08)
+    for yy = math.max(0, y1), y2 do
+      local v = (yy - y1) / math.max(1, y2 - y1)
+      local xa = bx + math.floor(v * (bay - 1))
+      local xb = bx + (bay - 1) - math.floor(v * (bay - 1))
+      if xa >= 0 and xa < img.width then img:putPixel(xa, yy, c_lo) end
+      if xb >= 0 and xb < img.width then img:putPixel(xb, yy, c_lo) end
+    end
+  end
+  -- 屋面脊线
+  if top >= 0 then
+    for xx = x, x + w - 1 do
+      if xx >= 0 and xx < img.width then img:putPixel(xx, top, c_hi) end
+    end
+  end
+end
+
+-- 巨型钢拱门（门式刚架/龙门尺度）：大张腿 + 顶部绗架 + 角部斜撑
+local function mega_steelarch(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local leg_w = math.max(3, math.floor(w * 0.09))
+  local top_band = 4
+  -- 两腿（向下外张）
+  for yy = math.max(0, top + top_band), base - 1 do
+    local t = (yy - (top + top_band)) / math.max(1, base - top)
+    local inset = math.floor(t * w * 0.1)
+    for k = 0, leg_w - 1 do
+      local lx = x + inset + k
+      if lx >= 0 and lx < img.width then
+        img:putPixel(lx, yy, (k == 0) and c_hi or c)
+      end
+      local rx = x + w - inset - 1 - k
+      if rx >= 0 and rx < img.width then
+        img:putPixel(rx, yy, (k == leg_w - 1) and c_lo or c)
+      end
+    end
+  end
+  -- 顶部横绗架
+  for xx = x, x + w - 1 do
+    if xx >= 0 and xx < img.width then
+      local u = (xx - x) / math.max(1, w - 1)
+      for yy = top, top + top_band - 1 do
+        local c2 = nil
+        if yy == top then c2 = c_hi
+        elseif yy == top + top_band - 1 then c2 = c
+        else
+          local v = (yy - top) / top_band
+          local ph = (u * 6) % 1
+          if math.abs(v - ph) < 0.3 or math.abs(v - (1 - ph)) < 0.3 then c2 = c_lo end
+        end
+        if c2 then img:putPixel(xx, yy, c2) end
+      end
+    end
+  end
+  -- 角部斜撑
+  local hl = math.floor(w * 0.24)
+  for i = 0, hl do
+    local ly = top + top_band + (hl - i)
+    local lx = x + i
+    local rx = x + w - 1 - i
+    if ly >= 0 and ly < img.height then
+      if lx >= 0 and lx < img.width then img:putPixel(lx, ly, c_lo) end
+      if rx >= 0 and rx < img.width then img:putPixel(rx, ly, c_lo) end
+    end
+  end
+  -- 门顶吊点（小线组）
+  if rng() < 0.5 then
+    local hx = x + math.floor(w * 0.5)
+    local hh = px.rngInt(rng, 4, 10)
+    for i = 1, hh do
+      if hx >= 0 and hx < img.width and top + top_band + i < img.height then
+        img:putPixel(hx, top + top_band + i, c)
+      end
+    end
+  end
+end
+
 -- 巨构天际线（多形制、可超框、可巨型）
 -- opts: x0/x1/y(基线), hmin/hmax, wmin/wmax, gapmin/gapmax, ramp, level,
 --       styles = {"tower","frame","tank","arcology","gantry",...},
@@ -1279,6 +1393,8 @@ function px.megastructure(img, ramps, rng, opts)
     elseif style == "block" then mega_block(img, ramps, rng, g)
     elseif style == "hall" then mega_hall(img, ramps, rng, g)
     elseif style == "mast" then mega_mast(img, ramps, rng, g)
+    elseif style == "steelhall" then mega_steelhall(img, ramps, rng, g)
+    elseif style == "steelarch" then mega_steelarch(img, ramps, rng, g)
     else mega_tower(img, ramps, rng, g) end
     x = x + w + px.rngInt(rng, opts.gapmin or 6, opts.gapmax or 20)
   end

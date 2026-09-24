@@ -87,7 +87,7 @@ python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135 
 | `moon` | 月盘 + 抖动光晕 | x/y/r/glow/corrupt（血月） |
 | `ridge` / `treeline` | 远山 / 树线剪影（视差纵深） | y/amplitude/height/level |
 | `hills` | 平滑起伏丘陵（正弦叠加，适合草原/苔原） | y/amplitude/level |
-| `megastructure` | 巨构天际线（DS 式：`block` 粗野主义综合体 / `hall` 锯齿厂房 / `mast` 绗架通讯塔；另保留 tower/frame/tank/arcology/gantry；可越框巨型） | y/hmin~hmax/wmin~wmax/gapmin~gapmax/styles/x0~x1 |
+| `megastructure` | 巨构天际线（钢结构：`frame` 绗架塔 / `steelhall` 钢骨架大厅 / `steelarch` 巨型钢拱门 / `mast` 通讯塔；混凝土向：block/hall；另保留 tower/tank/arcology/gantry；可越框巨型） | y/hmin~hmax/wmin~wmax/gapmin~gapmax/styles/x0~x1 |
 | `viaduct` | 破碎高架桥（桥面/桥墩/断跨/垂落钢缆/坠落残骸） | x0/x1/y/base/deck_h/broken/broken_count/debris |
 | `cables` | 悬索/斜拉索（悬链线 + 吊杆） | x0/x1/y0/y1/sag/hangers/hanger_len |
 | `birds` | 鸟群（尺度参照，随相位漂移） | flocks/x0~x1/y0~y1/level |
@@ -96,7 +96,7 @@ python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135 
 | `sprite` | 放入素材（底部中心锚；有 `{name}_f2..` 时自动按相位播放多帧） | folder/name/x/y |
 | `grade` | 时段调色（ramp→ramp 抖动交叉） | preset |
 | `light` | 火把光池（芯+晕双源、地面椭圆）+ 火焰 + 暖色池 | x/y/r/core_r/strength/squash/warm_r/flame |
-| `fog` | 大气雾（深度梯度） | ramp/y0/strength |
+| `fog` | 大气雾（深度梯度 / `field` 自定义雾带函数） | ramp/y0/strength/baseLevel/field |
 | `rays` | 光束（可 ember 色光柱） | x/y/angle/spread/count/strength |
 | `embers` | 余烬/萤火粒子 | count/范围 |
 | `fg_band` | 前景剪影框景 | y/amplitude/density |
