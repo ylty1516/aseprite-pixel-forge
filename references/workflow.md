@@ -87,7 +87,9 @@ python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135 
 | `moon` | 月盘 + 抖动光晕 | x/y/r/glow/corrupt（血月） |
 | `ridge` / `treeline` | 远山 / 树线剪影（视差纵深） | y/amplitude/height/level |
 | `hills` | 平滑起伏丘陵（正弦叠加，适合草原/苔原） | y/amplitude/level |
-| `megastructure` | 钢铁巨构天际线（塔楼/骨架/天线/塔吊） | y/hmin~hmax/wmin~wmax/gapmin~gapmax/frame_prob/antenna_prob/crane_prob |
+| `megastructure` | 钢铁巨构天际线（塔楼/绗架塔/冷却巨筒/阶梯城/龙门吊；可越框巨型） | y/hmin~hmax/wmin~wmax/gapmin~gapmax/styles/colossal+colossal_prob |
+| `cables` | 悬索/斜拉索（悬链线 + 吊杆） | x0/x1/y0/y1/sag/hangers/hanger_len |
+| `birds` | 鸟群（尺度参照，随相位漂移） | flocks/x0~x1/y0~y1/level |
 | `clouds` | 软边抖动云带 | count/y0/y1/density/wmin~wmax |
 | `ground` | tile 平铺（可多 variant） | tiles={...}/y |
 | `sprite` | 放入素材（底部中心锚；有 `{name}_f2..` 时自动按相位播放多帧） | folder/name/x/y |

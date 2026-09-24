@@ -701,85 +701,283 @@ function px.hills(img, ramps, rng, opts)
   end
 end
 
--- 钢铁巨构天际线：塔楼/骨架/天线/塔吊；左侧受光（左上光方向）
--- opts: x0, x1, y(基线), hmin/hmax, wmin/wmax, gapmin/gapmax, ramp, level,
---       frame_prob(骨架楼), antenna_prob, crane_prob
-function px.megastructure(img, ramps, rng, opts)
-  local ramp = ramps[opts.ramp or "iron"]
-  local level = opts.level or 3
-  local baseline = opts.y or img.height * 0.6
-  local x = opts.x0 or 0
-  local x1 = opts.x1 or img.width
-  local color = px.rampColor(ramp, level)
-  local color_hi = px.rampColor(ramp, level + 1)
-  local color_lo = px.rampColor(ramp, math.max(1, level - 1))
-  local win = px.rampColor(ramp, math.max(1, level - 1))
-  while x < x1 do
-    local w = px.rngInt(rng, opts.wmin or 10, opts.wmax or 24)
-    local h = px.rngInt(rng, opts.hmin or 50, opts.hmax or 115)
-    local top = baseline - h
-    local frame = rng() < (opts.frame_prob or 0.22)
-    local step = rng() < 0.35            -- 顶部退台
-    local step_h = math.floor(h * 0.18)
-    local step_w = math.floor(w * 0.55)
-    for yy = top, baseline - 1 do
-      local row_w = w
-      if step and yy < top + step_h then row_w = step_w end
-      local in_step = step and yy < top + step_h
-      local rx0 = x + math.floor((w - row_w) / 2)
-      for xx = rx0, rx0 + row_w - 1 do
+-- ============================================================ 巨构构件库（史诗尺度）
+-- 全部构件：左侧受光（左上光），颜色只走 ramp level（渲染后由雾/调色统一氛围）
+
+-- 塔楼：竖肋 + 两级退台 + 窗带 + 天线组
+local function mega_tower(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c_body = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local span = math.max(1, base - top)
+  local w2 = math.max(4, math.floor(w * 0.72))
+  local w3 = math.max(3, math.floor(w * 0.45))
+  local y1 = top + math.floor(span * 0.15)
+  local y2 = top + math.floor(span * 0.55)
+  local win_seed = math.floor(rng() * 7)
+  for yy = math.max(0, top), base - 1 do
+    local rw, rx
+    if yy < y1 then rw, rx = w3, x + math.floor((w - w3) / 2)
+    elseif yy < y2 then rw, rx = w2, x + math.floor((w - w2) / 2)
+    else rw, rx = w, x end
+    local step_edge = (yy == y1 or yy == y2)
+    for xx = rx, rx + rw - 1 do
+      if xx >= 0 and xx < img.width then
+        local rel = xx - rx
+        local c
+        if step_edge then c = c_hi
+        elseif rel == 0 then c = c_hi
+        elseif rel == rw - 1 then c = c_lo
+        elseif ((yy - top) % 5 <= 1) and rel > 1 and rel < rw - 2
+          and ((rel * 2 + yy * 3 + win_seed) % 3 ~= 0) then
+          c = c_lo
+        elseif (rel % 4 == 2) then c = c_lo
+        else c = c_body end
+        img:putPixel(xx, yy, c)
+      end
+    end
+  end
+  -- 天线组
+  local masts = px.rngInt(rng, 1, 3)
+  for m = 1, masts do
+    local mx = (masts == 1) and (x + math.floor(w / 2))
+      or (x + math.floor(w * (0.22 + 0.56 * (m - 1) / (masts - 1))))
+    local mh = px.rngInt(rng, 8, 14 + m * 7)
+    for i = 1, mh do
+      if mx >= 0 and mx < img.width and top - i >= 0 then
+        img:putPixel(mx, top - i, (i == mh) and c_hi or c_body)
+      end
+    end
+    if mh > 9 then
+      local by = top - math.floor(mh * 0.6)
+      for d = 1, 3 do
+        if mx + d < img.width and by >= 0 then img:putPixel(mx + d, by, c_lo) end
+      end
+    end
+  end
+end
+
+-- 骨架塔（绗架）：锥形 + 横档 + X 斜撑（巨构标志物）
+local function mega_frame(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local span = math.max(1, base - top)
+  local top_w = math.max(3, math.floor(w * 0.2))
+  local cell = px.rngInt(rng, 10, 16)
+  for yy = math.max(0, top), base - 1 do
+    local t = (yy - top) / span
+    local rw = math.floor(top_w + (w - top_w) * t)
+    local rx = x + math.floor((w - rw) / 2)
+    local v = (yy - top) % cell
+    for xx = rx, rx + rw - 1 do
+      if xx >= 0 and xx < img.width then
+        local rel = xx - rx
+        local c2 = nil
+        local edge = (rel == 0 or rel == rw - 1)
+        local girder = (v < 2)
+        if edge then c2 = (rel == 0) and c_hi or c_lo
+        elseif girder then c2 = c
+        else
+          local u = rel / math.max(1, rw - 1)
+          local d1 = math.abs(v / cell - u)
+          local d2 = math.abs(v / cell - (1 - u))
+          if d1 < 0.13 or d2 < 0.13 then c2 = c_lo end
+        end
+        if c2 then img:putPixel(xx, yy, c2) end
+      end
+    end
+  end
+  -- 顶部平台 + 小吊臂
+  local ty = top - 1
+  local cx = x + math.floor(w / 2)
+  if ty >= 0 then
+    for xx = cx - 3, cx + 3 do
+      if xx >= 0 and xx < img.width then img:putPixel(xx, ty, c_hi) end
+    end
+  end
+end
+
+-- 巨筒（冷却塔形）：腰身内收 + 竖棱 + 顶口亮边
+local function mega_tank(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local span = math.max(1, base - top)
+  for yy = math.max(0, top), base - 1 do
+    local u = (yy - top) / span          -- 0 顶 → 1 底
+    local hw = w / 2 * (1 - 0.4 * math.sin(math.pi * (1 - u) * 0.9))
+    local rx = x + math.floor(w / 2 - hw)
+    local rw = math.max(2, math.floor(hw * 2))
+    for xx = rx, rx + rw - 1 do
+      if xx >= 0 and xx < img.width then
+        local rel = xx - rx
+        local c2
+        if yy == top then c2 = c_hi
+        elseif rel == 0 then c2 = c_hi
+        elseif rel == rw - 1 then c2 = c_lo
+        elseif rel % 3 == 0 then c2 = c_lo
+        else c2 = c end
+        img:putPixel(xx, yy, c2)
+      end
+    end
+  end
+end
+
+-- 阶梯巨城（金字塔式退台）
+local function mega_arcology(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local tiers = px.rngInt(rng, 3, 5)
+  local span = math.max(1, base - top)
+  for ti = 0, tiers - 1 do
+    local y0 = top + math.floor(span * ti / tiers)
+    local y1 = top + math.floor(span * (ti + 1) / tiers)
+    local rw = math.max(4, math.floor(w * (1 - 0.18 * ti)))
+    local rx = x + math.floor((w - rw) / 2)
+    for yy = math.max(0, y0), math.min(y1, base - 1) do
+      for xx = rx, rx + rw - 1 do
         if xx >= 0 and xx < img.width then
-          local c = nil
-          if frame then
-            local rel = xx - rx0
-            local edge = (rel == 0 or rel == row_w - 1)
-            local beam = ((yy - top) % 7 == 0 and row_w > 8)
-            if edge then c = color_hi
-            elseif beam then c = color
-            else
-              -- 斜撑：周期性双像素阶梯
-              if ((rel + (yy - top)) % 11) == 0 then c = color_lo end
-            end
-          else
-            local rel = xx - rx0
-            -- 窗带：每 5 行一段，左右不贴边
-            local winrow = ((yy - top) % 5 <= 1) and rel > 1 and rel < row_w - 2
-            if rel == 0 then c = color_hi
-            elseif rel == row_w - 1 then c = color_lo
-            elseif winrow and ((rel + math.floor((yy - top) / 5)) % 2 == 0) then
-              c = win
-            else
-              c = color
-            end
-          end
-          if c and not in_step then
-            -- 退台部位的顶部亮边
-            if step and yy == top + step_h then c = color_hi end
-          end
-          if c then img:putPixel(xx, yy, c) end
+          local rel = xx - rx
+          local c2
+          if rel == 0 then c2 = c_hi
+          elseif rel == rw - 1 then c2 = c_lo
+          elseif ((yy - y0) % 5 <= 1) and rel > 1 and rel < rw - 2 and rel % 2 == 0 then
+            c2 = c_lo
+          else c2 = c end
+          img:putPixel(xx, yy, c2)
         end
       end
     end
-    -- 天线桅杆
-    if rng() < (opts.antenna_prob or 0.45) then
-      local mx = x + math.floor(w / 2)
-      local mh = px.rngInt(rng, 6, 20)
-      for i = 1, mh do
-        if mx < img.width then img:putPixel(mx, top - i, (i == mh) and color_hi or color) end
+    for xx = rx, rx + rw - 1 do
+      if xx >= 0 and xx < img.width and y0 >= 0 then img:putPixel(xx, y0, c_hi) end
+    end
+  end
+end
+
+-- 龙门巨构：双腿 + 顶梁 + 吊索（港口/造船坞尺度）
+local function mega_gantry(img, ramps, rng, g)
+  local x, w, top, base = g.x, g.w, g.top, g.base
+  local c = px.rampColor(g.ramp, g.level)
+  local c_hi = px.rampColor(g.ramp, g.level + 1)
+  local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  local leg_w = math.max(2, math.floor(w * 0.16))
+  for yy = math.max(0, top), base - 1 do
+    for _, lx in ipairs({ x, x + w - leg_w }) do
+      for xx = lx, lx + leg_w - 1 do
+        if xx >= 0 and xx < img.width then
+          img:putPixel(xx, yy, (xx == lx) and c_hi or c_lo)
+        end
       end
     end
-    -- 塔吊臂（从左顶向右伸，带吊钩）
-    if not frame and rng() < (opts.crane_prob or 0.2) then
-      local ay = top + 2
-      local arm = px.rngInt(rng, 8, 16)
-      for i = 1, arm do
-        if x + i < img.width then img:putPixel(x + i, ay, color_hi) end
-      end
-      local hx = x + math.floor(arm * 0.6)
-      local hl = px.rngInt(rng, 3, 8)
-      for i = 1, hl do img:putPixel(hx, ay + i, color_lo) end
+  end
+  -- 顶梁
+  if top >= 0 then
+    for xx = x, x + w - 1 do
+      if xx >= 0 and xx < img.width then img:putPixel(xx, top, c_hi) end
     end
-    x = x + w + px.rngInt(rng, opts.gapmin or 4, opts.gapmax or 16)
+  end
+  -- 腿间横撑（3 道）
+  for k = 1, 3 do
+    local by = top + math.floor((base - top) * k / 4)
+    for xx = x + leg_w, x + w - leg_w - 1 do
+      if xx >= 0 and xx < img.width and by >= 0 and by < img.height then
+        img:putPixel(xx, by, c)
+      end
+    end
+  end
+  -- 吊索 + 吊块
+  local hx = x + math.floor(w * 0.55)
+  local hl = px.rngInt(rng, math.floor((base - top) * 0.3), math.floor((base - top) * 0.6))
+  for i = 3, hl do
+    local yy = top + i
+    if hx < img.width and yy >= 0 and yy < img.height then img:putPixel(hx, yy, c_lo) end
+  end
+  local by2 = math.min(img.height - 1, top + hl + 1)
+  if hx < img.width and by2 >= 0 then img:putPixel(hx, by2, c_hi) end
+end
+
+-- 巨构天际线（多形制、可超框、可巨型）
+-- opts: x0/x1/y(基线), hmin/hmax, wmin/wmax, gapmin/gapmax, ramp, level,
+--       styles = {"tower","frame","tank","arcology","gantry",...},
+--       colossal = true + colossal_prob/colossal_scale（顶部超出画框的巨型剪影）
+function px.megastructure(img, ramps, rng, opts)
+  local base = opts.y or math.floor(img.height * 0.6)
+  local x = opts.x0 or 0
+  local x1 = opts.x1 or img.width
+  local ramp = ramps[opts.ramp or "iron"]
+  local level = opts.level or 3
+  local styles = opts.styles or { "tower", "tower", "frame", "tank", "arcology", "gantry" }
+  while x < x1 do
+    local style = styles[px.rngInt(rng, 1, #styles)]
+    local w = px.rngInt(rng, opts.wmin or 10, opts.wmax or 24)
+    local h = px.rngInt(rng, opts.hmin or 50, opts.hmax or 115)
+    if opts.colossal and rng() < (opts.colossal_prob or 0.18) then
+      h = math.floor(h * (opts.colossal_scale or 2.0))
+      w = math.floor(w * 1.3)
+      style = px.pick(rng, { "frame", "arcology", "tower", "gantry" })
+    end
+    local top = base - h
+    local g = { x = x, w = w, top = top, base = base, ramp = ramp, level = level }
+    if style == "frame" then mega_frame(img, ramps, rng, g)
+    elseif style == "tank" then mega_tank(img, ramps, rng, g)
+    elseif style == "arcology" then mega_arcology(img, ramps, rng, g)
+    elseif style == "gantry" then mega_gantry(img, ramps, rng, g)
+    else mega_tower(img, ramps, rng, g) end
+    x = x + w + px.rngInt(rng, opts.gapmin or 6, opts.gapmax or 20)
+  end
+end
+
+-- 悬索/斜拉索：横跨天际的悬链线（巨构之间的史诗尺度线索）
+function px.mega_cable(img, ramps, opts)
+  local c = px.rampColor(ramps[opts.ramp or "iron"], opts.level or 2)
+  local x0 = opts.x0 or 0
+  local x1 = opts.x1 or img.width
+  local y0 = opts.y0 or 100
+  local y1 = opts.y1 or y0
+  local sag = opts.sag or 30
+  local steps = math.floor(x1 - x0)
+  for i = 0, steps do
+    local t = i / math.max(1, steps)
+    local xx = math.floor(x0 + (x1 - x0) * t)
+    local yy = math.floor(y0 + (y1 - y0) * t + sag * 4 * t * (1 - t))
+    if xx >= 0 and xx < img.width and yy >= 0 and yy < img.height then
+      img:putPixel(xx, yy, c)
+    end
+    -- 吊杆（向下垂）
+    if opts.hangers and i % opts.hangers == 0 and t > 0.06 and t < 0.94 then
+      for d = 1, opts.hanger_len or 4 do
+        local hy = yy + d
+        if xx >= 0 and xx < img.width and hy >= 0 and hy < img.height then
+          img:putPixel(xx, hy, c)
+        end
+      end
+    end
+  end
+end
+
+-- 鸟群：尺度参照（微小剪影，随相位缓慢漂移）
+function px.birds(img, ramps, rng, opts)
+  local c = px.rampColor(ramps[opts.ramp or "shadow"], opts.level or 2)
+  local phase = opts.phase or 0
+  for fl = 1, (opts.flocks or 2) do
+    local fx = px.rngInt(rng, opts.x0 or 0, opts.x1 or img.width)
+    local fy = px.rngInt(rng, opts.y0 or 30, opts.y1 or 120)
+    local n = px.rngInt(rng, 3, 7)
+    for b = 1, n do
+      local bx = fx + px.rngInt(rng, -16, 16) + math.floor(math.sin(phase + b) * 2)
+      local by = fy + px.rngInt(rng, -7, 7) + math.floor(math.cos(phase * 0.7 + b))
+      if bx >= 1 and bx < img.width - 1 and by >= 1 and by < img.height then
+        img:putPixel(bx, by, c)
+        img:putPixel(bx - 1, by - 1, c)
+        img:putPixel(bx + 1, by - 1, c)
+      end
+    end
   end
 end
 

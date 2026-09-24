@@ -1,4 +1,4 @@
--- 钢铁巨构平原：白日远景（钢铁巨构）/ 中景（死亡搁浅式枯橄榄丘陵草地）/ 近景（玩家行走地图）
+-- 钢铁巨构平原：白日远景（史诗巨构·逆光剪影）/ 中景（死亡搁浅式干草原）/ 近景（玩家行走地图）
 -- 渲染：forge scene scenes/steel-plains-day.lua --out <目录> --frames 8 --gif
 return {
   name = "steel-plains-day",
@@ -9,25 +9,53 @@ return {
   time = "day",
 
   layers = {
-    -- 天：浅蓝灰（上深下浅）+ 云带 + 淡白日轮
+    -- 天：浅蓝灰（上深下浅）+ 云带
     { type = "sky", ramp = "frost", from = 3, to = 5 },
-    { type = "clouds", count = 3, y0 = 28, y1 = 64, ramp = "bone", density = 0.3,
-      wmin = 30, wmax = 64, hmin = 4, hmax = 9 },
-    { type = "moon", x = 522, y = 50, r = 14, glow = 34, corrupt = false, ramp = "bone" },
-    { type = "rays", x = 522, y = 50, angle = 2.05, spread = 0.6, count = 3,
-      length = 230, strength = 0.14, ramp = "bone", level_base = 3, flicker = 0.08 },
+    { type = "clouds", count = 3, y0 = 26, y1 = 70, ramp = "bone", density = 0.3,
+      wmin = 30, wmax = 60, hmin = 4, hmax = 9 },
 
-    -- 远景：钢铁巨构（层一：高、细、稀，被雾按入大气）
-    { type = "megastructure", y = 168, hmin = 45, hmax = 110, wmin = 8, wmax = 18,
-      gapmin = 14, gapmax = 38, ramp = "iron", level = 2,
-      frame_prob = 0.25, antenna_prob = 0.5, crane_prob = 0.3 },
-    { type = "fog", ramp = "frost", y0 = 118, strength = 0.45, baseLevel = 4, levelSpan = 1 },
+    -- 日轮压在巨构天脚线（逆光：远层巨构会从日面前穿过）
+    { type = "moon", x = 468, y = 84, r = 17, glow = 46, corrupt = false, ramp = "bone" },
+    { type = "rays", x = 468, y = 84, angle = 2.1, spread = 0.6, count = 3,
+      length = 220, strength = 0.13, ramp = "bone", level_base = 3, flicker = 0.08 },
 
-    -- 远景：钢铁巨构（层二：矮、近一档）
-    { type = "megastructure", y = 182, hmin = 24, hmax = 56, wmin = 7, wmax = 14,
-      gapmin = 18, gapmax = 44, ramp = "iron", level = 3,
-      frame_prob = 0.15, antenna_prob = 0.35, crane_prob = 0.15 },
-    { type = "fog", ramp = "frost", y0 = 152, strength = 0.3, baseLevel = 4, levelSpan = 1 },
+    -- ═══ 层一：超巨型剪影（顶部越过画框 → 史诗尺度）═══
+    { type = "megastructure", y = 172, hmin = 130, hmax = 240,
+      wmin = 14, wmax = 28, gapmin = 36, gapmax = 84,
+      ramp = "iron", level = 1, colossal = true, colossal_prob = 0.45,
+      colossal_scale = 1.6, styles = { "frame", "tower", "arcology", "tank" } },
+    -- 远层整体大气透视（按距离均匀发灰，不按高度）
+    { type = "grade", spec = {
+      ["iron"] = { target = "frost", blend = 0.62, shift = 2 },
+    } },
+
+    -- 跨天际悬索（层一之间）
+    { type = "cables", x0 = -30, x1 = 300, y0 = 42, y1 = 46, sag = 30,
+      ramp = "iron", level = 2 },
+    { type = "cables", x0 = 330, x1 = 670, y0 = 52, y1 = 40, sag = 26,
+      ramp = "iron", level = 2 },
+
+    -- ═══ 层二：中景巨构（骨架塔/龙门吊为主）═══
+    { type = "megastructure", y = 182, hmin = 64, hmax = 126,
+      wmin = 10, wmax = 22, gapmin = 20, gapmax = 48,
+      ramp = "iron", level = 2,
+      styles = { "frame", "tower", "gantry", "frame", "arcology" } },
+    { type = "fog", ramp = "frost", y0 = 148, strength = 0.3, baseLevel = 4, levelSpan = 1 },
+
+    -- 鸟群（尺度参照，逆光剪影）
+    { type = "birds", flocks = 2, x0 = 60, x1 = 560, y0 = 54, y1 = 132,
+      ramp = "shadow", level = 2 },
+
+    -- 近景悬索（低，带吊杆）
+    { type = "cables", x0 = 120, x1 = 640, y0 = 128, y1 = 118, sag = 18,
+      ramp = "iron", level = 2, hangers = 22, hanger_len = 3 },
+
+    -- ═══ 层三：近层巨构（细节最实）═══
+    { type = "megastructure", y = 190, hmin = 34, hmax = 78,
+      wmin = 8, wmax = 18, gapmin = 24, gapmax = 56,
+      ramp = "iron", level = 3,
+      styles = { "tower", "arcology", "gantry", "frame", "tower" } },
+    { type = "fog", ramp = "frost", y0 = 176, strength = 0.16, baseLevel = 4, levelSpan = 1 },
 
     -- 中景：枯橄榄色平滑丘陵（远浅近深）
     { type = "hills", y = 196, amplitude = 9, ramp = "foliage_dead", level = 4 },
@@ -56,7 +84,7 @@ return {
     { type = "sprite", folder = "flowers", name = "flower_02", x = 430, y = 245 },
     { type = "sprite", folder = "ruins", name = "ruin_02", x = 588, y = 248 },
 
-    -- 日间调色：草→枯橄榄提亮，土路暖，岩石冷亮，黑影轻提
+    -- 日间调色：草→枯橄榄提亮，土路暖，巨构褪入大气
     { type = "grade", preset = "day_sage" },
 
     -- 浮尘（极少，风感）
@@ -77,7 +105,7 @@ return {
       ["soil"] = { target = "stone_warm", blend = 0.5, shift = 1 },
       ["bark"] = { target = "stone_warm", blend = 0.35, shift = 1 },
       ["wood_dead"] = { target = "stone_warm", blend = 0.3, shift = 1 },
-      ["iron"] = { target = "frost", blend = 0.5, shift = 1 },
+      ["iron"] = { target = "frost", blend = 0.1, shift = 1 },
     },
   },
 }

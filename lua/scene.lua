@@ -197,8 +197,26 @@ local function run()
           wmin = layer.wmin, wmax = layer.wmax,
           gapmin = layer.gapmin, gapmax = layer.gapmax,
           ramp = layer.ramp or "iron", level = layer.level or 3,
-          frame_prob = layer.frame_prob, antenna_prob = layer.antenna_prob,
-          crane_prob = layer.crane_prob,
+          styles = layer.styles,
+          colossal = layer.colossal,
+          colossal_prob = layer.colossal_prob,
+          colossal_scale = layer.colossal_scale,
+        })
+
+      elseif t == "cables" then
+        px.mega_cable(img, ramps, {
+          x0 = layer.x0, x1 = layer.x1,
+          y0 = layer.y0, y1 = layer.y1, sag = layer.sag,
+          ramp = layer.ramp or "iron", level = layer.level or 2,
+          hangers = layer.hangers, hanger_len = layer.hanger_len,
+        })
+
+      elseif t == "birds" then
+        px.birds(img, ramps, layer_rng(), {
+          flocks = layer.flocks or 2,
+          x0 = layer.x0, x1 = layer.x1, y0 = layer.y0, y1 = layer.y1,
+          ramp = layer.ramp or "shadow", level = layer.level or 2,
+          phase = phase,
         })
 
       elseif t == "grade" then
