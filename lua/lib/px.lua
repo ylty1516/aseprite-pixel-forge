@@ -398,9 +398,11 @@ local BAYER4 = {
   {15, 7, 13, 5},
 }
 
--- Bayer 4×4 阈值（0..1）供外部抖动使用
+-- Bayer 4×4 阈值（0..1）供外部抖动使用（坐标自动取整，浮点坐标安全）
 function px.bayer(x, y)
-  return BAYER4[(y % 4) + 1][(x % 4) + 1] / 16.0
+  local xi = math.floor(x) % 4 + 1
+  local yi = math.floor(y) % 4 + 1
+  return BAYER4[yi][xi] / 16.0
 end
 
 -- 双色 Bayer 抖动填充（密度 0→全 A，1→全 B）
@@ -672,6 +674,144 @@ function px.warmPool(img, index, ramps, opts)
   end
 end
 
+-- 平滑丘陵（正弦叠加，死亡搁浅式起伏）；fill 向下，可选顶部 2px 亮边
+function px.hills(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "moss"]
+  local level = opts.level or 3
+  local base = opts.y or img.height * 0.7
+  local amp = opts.amplitude or 10
+  local w = img.width
+  -- 三层正弦叠加，相位随机（同 seed 稳定）
+  local p1, p2, p3 = rng() * 6.28, rng() * 6.28, rng() * 6.28
+  local f1 = px.rngRange(rng, 0.010, 0.020)
+  local f2 = px.rngRange(rng, 0.025, 0.045)
+  local f3 = px.rngRange(rng, 0.06, 0.10)
+  local color = px.rampColor(ramp, level)
+  local color_hi = px.rampColor(ramp, level + 1)
+  for x = 0, w - 1 do
+    local hh = math.sin(x * f1 + p1) * 0.55
+      + math.sin(x * f2 + p2) * 0.3
+      + math.sin(x * f3 + p3) * 0.15
+    local top = math.floor(base - hh * amp)
+    for y = top, img.height - 1 do
+      if (not opts.only_empty) or app.pixelColor.rgbaA(img:getPixel(x, y)) == 0 then
+        img:putPixel(x, y, (y <= top + 1 and hh > 0.15) and color_hi or color)
+      end
+    end
+  end
+end
+
+-- 钢铁巨构天际线：塔楼/骨架/天线/塔吊；左侧受光（左上光方向）
+-- opts: x0, x1, y(基线), hmin/hmax, wmin/wmax, gapmin/gapmax, ramp, level,
+--       frame_prob(骨架楼), antenna_prob, crane_prob
+function px.megastructure(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "iron"]
+  local level = opts.level or 3
+  local baseline = opts.y or img.height * 0.6
+  local x = opts.x0 or 0
+  local x1 = opts.x1 or img.width
+  local color = px.rampColor(ramp, level)
+  local color_hi = px.rampColor(ramp, level + 1)
+  local color_lo = px.rampColor(ramp, math.max(1, level - 1))
+  local win = px.rampColor(ramp, math.max(1, level - 1))
+  while x < x1 do
+    local w = px.rngInt(rng, opts.wmin or 10, opts.wmax or 24)
+    local h = px.rngInt(rng, opts.hmin or 50, opts.hmax or 115)
+    local top = baseline - h
+    local frame = rng() < (opts.frame_prob or 0.22)
+    local step = rng() < 0.35            -- 顶部退台
+    local step_h = math.floor(h * 0.18)
+    local step_w = math.floor(w * 0.55)
+    for yy = top, baseline - 1 do
+      local row_w = w
+      if step and yy < top + step_h then row_w = step_w end
+      local in_step = step and yy < top + step_h
+      local rx0 = x + math.floor((w - row_w) / 2)
+      for xx = rx0, rx0 + row_w - 1 do
+        if xx >= 0 and xx < img.width then
+          local c = nil
+          if frame then
+            local rel = xx - rx0
+            local edge = (rel == 0 or rel == row_w - 1)
+            local beam = ((yy - top) % 7 == 0 and row_w > 8)
+            if edge then c = color_hi
+            elseif beam then c = color
+            else
+              -- 斜撑：周期性双像素阶梯
+              if ((rel + (yy - top)) % 11) == 0 then c = color_lo end
+            end
+          else
+            local rel = xx - rx0
+            -- 窗带：每 5 行一段，左右不贴边
+            local winrow = ((yy - top) % 5 <= 1) and rel > 1 and rel < row_w - 2
+            if rel == 0 then c = color_hi
+            elseif rel == row_w - 1 then c = color_lo
+            elseif winrow and ((rel + math.floor((yy - top) / 5)) % 2 == 0) then
+              c = win
+            else
+              c = color
+            end
+          end
+          if c and not in_step then
+            -- 退台部位的顶部亮边
+            if step and yy == top + step_h then c = color_hi end
+          end
+          if c then img:putPixel(xx, yy, c) end
+        end
+      end
+    end
+    -- 天线桅杆
+    if rng() < (opts.antenna_prob or 0.45) then
+      local mx = x + math.floor(w / 2)
+      local mh = px.rngInt(rng, 6, 20)
+      for i = 1, mh do
+        if mx < img.width then img:putPixel(mx, top - i, (i == mh) and color_hi or color) end
+      end
+    end
+    -- 塔吊臂（从左顶向右伸，带吊钩）
+    if not frame and rng() < (opts.crane_prob or 0.2) then
+      local ay = top + 2
+      local arm = px.rngInt(rng, 8, 16)
+      for i = 1, arm do
+        if x + i < img.width then img:putPixel(x + i, ay, color_hi) end
+      end
+      local hx = x + math.floor(arm * 0.6)
+      local hl = px.rngInt(rng, 3, 8)
+      for i = 1, hl do img:putPixel(hx, ay + i, color_lo) end
+    end
+    x = x + w + px.rngInt(rng, opts.gapmin or 4, opts.gapmax or 16)
+  end
+end
+
+-- 云层：软边抖动云带（覆盖在天空上）
+function px.clouds(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "bone"]
+  local count = opts.count or 3
+  local dens = opts.density or 0.5
+  for i = 1, count do
+    local cy = px.rngInt(rng, opts.y0 or 30, opts.y1 or 90)
+    local cx = px.rngInt(rng, 0, img.width)
+    local w = px.rngInt(rng, opts.wmin or 40, opts.wmax or 130)
+    local hh = px.rngInt(rng, opts.hmin or 5, opts.hmax or 13)
+    for dy = -hh, hh do
+      local t = 1 - math.abs(dy) / hh       -- 中央最密
+      local row_w = w * (0.55 + 0.45 * t)
+      local y = cy + dy
+      if y >= 0 and y < img.height then
+        for dx = -row_w, row_w do
+          local x = cx + dx
+          if x >= 0 and x < img.width then
+            local p = dens * t * (0.55 + 0.45 * math.sin(dx * 0.15 + i * 2))
+            if px.bayer(x, y) < p then
+              img:putPixel(x, y, px.rampColor(ramp, t > 0.6 and 5 or 4))
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 -- 大气雾：从 y0 向上按深度梯度混向雾 ramp（有序抖动）；field 可完全自定义
 function px.fog(img, index, ramps, opts)
   local ramp = ramps[opts.ramp or "frost"]
@@ -849,7 +989,7 @@ function px.treeline(img, ramps, rng, opts)
 end
 
 -- 光束：从 (x,y) 向 angle 方向发散 count 条，交错抖动 + 距离衰减
--- opts.ramp 指定时直接铺该 ramp 色（如 ember 血色光柱）；否则对原像素提亮一阶
+-- opts.ramp 指定时直接铺该 ramp 色（level_base 控制亮度基准）；否则对原像素提亮一阶
 function px.rays(img, index, ramps, rng, opts)
   local count = opts.count or 4
   local base = opts.angle or (math.pi / 2)
@@ -857,6 +997,7 @@ function px.rays(img, index, ramps, rng, opts)
   local length = opts.length or img.height
   local strength = opts.strength or 0.5
   local step = opts.step or 3
+  local level_base = opts.level_base or 1
   local override = opts.ramp and ramps[opts.ramp]
   for i = 1, count do
     local a = base + px.rngRange(rng, -spread, spread)
@@ -876,7 +1017,8 @@ function px.rays(img, index, ramps, rng, opts)
           local info = index[c]
           if info and (BAYER4[(ry % 4) + 1][(rx % 4) + 1] / 16.0) < math.min(0.9, fade) then
             if override then
-              img:putPixel(rx, ry, px.rampColor(override, 1 + math.floor(math.min(0.95, fade) * 3.5)))
+              img:putPixel(rx, ry, px.rampColor(override,
+                level_base + math.floor(math.min(0.95, fade) * 3.5)))
             else
               img:putPixel(rx, ry, px.rampColor(ramps[info.ramp], info.level + 1))
             end

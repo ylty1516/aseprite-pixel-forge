@@ -49,10 +49,7 @@ local function run()
 
   -- 素材缓存（以 cel 图像尺寸为准：Aseprite 中画布与 cel 可能不同，如裁剪后的 cel）
   local sprite_cache = {}
-  local function load_sprite(folder, name)
-    local key = folder .. "/" .. name
-    if sprite_cache[key] then return sprite_cache[key] end
-    local path = pack .. "/" .. folder .. "/" .. name .. ".png"
+  local function load_sprite_file(path)
     local spr = app.open(path)
     if not spr then error("无法打开素材：" .. path) end
     local src = spr.cels[1].image
@@ -63,6 +60,13 @@ local function run()
       end
     end
     spr:close()
+    return img
+  end
+
+  local function load_sprite(folder, name)
+    local key = folder .. "/" .. name
+    if sprite_cache[key] then return sprite_cache[key] end
+    local img = load_sprite_file(pack .. "/" .. folder .. "/" .. name .. ".png")
     sprite_cache[key] = img
     return img
   end
@@ -137,13 +141,65 @@ local function run()
         end
 
       elseif t == "sprite" then
-        local s = load_sprite(layer.folder, layer.name)
+        -- 自动多帧：存在 {name}_f2.png 则按相位播放（风吹草簇等）
+        local path0 = pack .. "/" .. layer.folder .. "/" .. layer.name .. ".png"
+        local frames_l = {}
+        if app.fs.isFile(path0) then
+          table.insert(frames_l, path0)
+          local i = 2
+          while i <= 8 do
+            local fi = string.format("%s/%s/%s_f%d.png", pack, layer.folder, layer.name, i)
+            if app.fs.isFile(fi) then
+              table.insert(frames_l, fi)
+              i = i + 1
+            else
+              break
+            end
+          end
+        end
+        if #frames_l == 0 then error("缺少素材：" .. path0) end
+        local pick_idx = 1
+        if #frames_l > 1 then
+          pick_idx = (math.floor((f - 1) / frames * #frames_l)) % #frames_l + 1
+        end
+        local key = layer.folder .. "/" .. layer.name .. "#" .. pick_idx
+        local s = sprite_cache[key]
+        if not s then
+          s = load_sprite_file(frames_l[pick_idx])
+          sprite_cache[key] = s
+        end
         local x, y = layer.x, layer.y
         if (layer.anchor or "bottom_center") == "bottom_center" then
           x = x - math.floor(s.width / 2)
           y = y - s.height
         end
         px.blit(img, s, x, y)
+
+      elseif t == "clouds" then
+        px.clouds(img, ramps, layer_rng(), {
+          ramp = layer.ramp, count = layer.count or 3,
+          y0 = layer.y0, y1 = layer.y1, density = layer.density,
+          wmin = layer.wmin, wmax = layer.wmax,
+          hmin = layer.hmin, hmax = layer.hmax,
+        })
+
+      elseif t == "hills" then
+        px.hills(img, ramps, layer_rng(), {
+          y = layer.y, amplitude = layer.amplitude or 10,
+          ramp = layer.ramp or "moss", level = layer.level or 3,
+          only_empty = layer.only_empty,
+        })
+
+      elseif t == "megastructure" then
+        px.megastructure(img, ramps, layer_rng(), {
+          x0 = layer.x0, x1 = layer.x1, y = layer.y,
+          hmin = layer.hmin, hmax = layer.hmax,
+          wmin = layer.wmin, wmax = layer.wmax,
+          gapmin = layer.gapmin, gapmax = layer.gapmax,
+          ramp = layer.ramp or "iron", level = layer.level or 3,
+          frame_prob = layer.frame_prob, antenna_prob = layer.antenna_prob,
+          crane_prob = layer.crane_prob,
+        })
 
       elseif t == "grade" then
         local spec = layer.spec

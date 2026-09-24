@@ -298,6 +298,14 @@ do
   check("fog-applies", img2:getPixel(0, 0) == app.pixelColor.rgba(200, 0, 0, 255))
 end
 
+-- ---------- bayer 浮点坐标回归（曾因浮点键查表返回 nil 导致 clouds 崩溃） ----------
+do
+  check("bayer-float-safe", px.bayer(3.7, 4.2) == px.bayer(3, 4))
+  check("bayer-int-unaffected", px.bayer(2, 3) == px.bayer(2.0, 3.0))
+  local v = px.bayer(5, 9)
+  check("bayer-range", v >= 0 and v < 1)
+end
+
 -- ---------- jsonEncode ----------
 do
   local s = px.jsonEncode({ok = true, n = 1.5, name = "tree_01"})

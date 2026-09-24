@@ -24,6 +24,13 @@ Programmatic pixel-art studio for AI agents: drive [Aseprite](https://www.asepri
 |---|---|
 | ![daynight](assets/daynight.gif) | ![variants](assets/variants.gif) |
 
+### 场景示例 2：白昼 · 钢铁巨构平原
+
+![钢铁平原](assets/steel-plains-day.gif)
+
+> 远景钢铁巨构（骨架楼/天线/塔吊，大气雾压深）/ 中景死亡搁浅式干草原（平滑丘陵 + 沙橄榄调色）/
+> 近景玩家行走地图；风吹草簇为原生 4 帧动画；全部效果调色板内完成（100% 合规）。
+
 ## 这是什么
 
 不是"又一个素材生成器"，而是一条**可复现的质量流水线**（Agent Skills 标准技能包，pi / Claude Code / Codex 等 agent 装入 `~/.agents/skills/` 即可发现）：

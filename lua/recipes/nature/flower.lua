@@ -92,12 +92,13 @@ local function generate(ctx)
   end
 
   -- 多帧：叶片弯曲摆动（根部固定，梢部摆动最大；花/苔随叶移动）
+  -- 注：草簇只占 pivot 以上高度的一半，amp 需偏大、falloff 偏线性才有可见摆动
   if (ctx.params.frames or 1) > 1 then
-    local amp = 2.0
-    if p.kind == "fern" then amp = 1.0 end
-    if p.kind == "tuft" then amp = 2.2 end
+    local amp = 3.6
+    if p.kind == "fern" then amp = 1.8 end
+    if p.kind == "tuft" then amp = 4.0 end
     img, m = px.shear(img, m, {
-      amp = amp, pivot = ground - 1, phase = ctx.phase or 0, falloff = 1.5,
+      amp = amp, pivot = ground - 1, phase = ctx.phase or 0, falloff = 1.2,
     })
   end
 

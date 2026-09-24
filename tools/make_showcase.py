@@ -51,6 +51,7 @@ SPRITE_FRAMES = 4    # 场景内动画素材帧数（12 % 4 == 0 保证无缝循
 FOLDER_RECIPE = {"trees": "tree", "bushes": "bush", "rocks": "rock",
                  "flowers": "flower", "tiles": "tile", "ruins": "ruin"}
 SCENE = ROOT / "scenes" / "bloodmoon-ruins.lua"
+SCENE_STEEL = ROOT / "scenes" / "steel-plains-day.lua"
 
 
 # ---------------------------------------------------------------- 字体 / 载入
@@ -393,6 +394,24 @@ def build_keyart(use_cache: bool = True):
         strip.save(ASSETS / "daynight.png")
 
 
+def build_steel_scene(use_cache: bool = True):
+    """白昼·钢铁巨构平原（远景钢铁巨构 / 中景干草原 / 近景行走地图）。"""
+    out = CACHE / "steel-plains"
+    if not (use_cache and (out / "steel-plains-day.aseprite").is_file()):
+        r = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "forge.py"), "scene",
+             str(SCENE_STEEL), "--out", str(out), "--frames", "8", "--gif"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if r.returncode != 0:
+            print(f"⚠ 钢铁平原场景渲染失败：{r.stdout[-200:]}")
+            return
+    import shutil as _sh
+    for name in ("steel-plains-day.gif", "steel-plains-day.png"):
+        src = out / name
+        if src.is_file():
+            _sh.copyfile(src, ASSETS / name)
+
+
 def build_variants_gif():
     categories = [
         ("trees", "Trees 树木", 3), ("bushes", "Bushes 灌木", 3),
@@ -476,11 +495,13 @@ def main():
 
     build_tree_sway(use_cache=use_cache)
     build_keyart(use_cache=use_cache)
+    build_steel_scene(use_cache=use_cache)
     build_variants_gif()
     build_evolution_png()
 
     for name in ("hero-scene.gif", "hero-scene.png", "tree-sway.gif",
                  "keyart-bloodmoon.gif", "daynight.gif", "daynight.png",
+                 "steel-plains-day.gif", "steel-plains-day.png",
                  "variants.gif", "evolution.png"):
         p = ASSETS / name
         if p.is_file():

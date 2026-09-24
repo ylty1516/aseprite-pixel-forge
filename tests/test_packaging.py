@@ -37,7 +37,9 @@ def test_examples_pack_all_palette_compliant():
 
 def test_examples_pack_counts_per_category():
     pack = ROOT / "examples" / "gothic-nature-pack"
-    expected = {"trees": 10, "bushes": 8, "rocks": 8, "flowers": 8, "tiles": 9, "ruins": 9}
+    expected = {"trees": 10, "bushes": 8, "rocks": 8, "flowers": 11, "tiles": 9, "ruins": 9}
+    import re as _re
     for folder, count in expected.items():
-        pngs = [p for p in (pack / folder).glob("*.png") if "_sheet" not in p.name]
+        pngs = [p for p in (pack / folder).glob("*.png")
+                if "_sheet" not in p.name and not _re.search(r"_f\d+\.png$", p.name)]
         assert len(pngs) == count, f"{folder}: 期望 {count} 张，实际 {len(pngs)}"
