@@ -465,12 +465,14 @@ def main():
     big[0].save(ASSETS / "hero-scene.png")
     save_gif(big, ASSETS / "hero-scene.gif")
 
-    # 采样胶片（检查用，随后删除）
+    # 采样胶片（仅本地检查用，写入 forge-build 不入库）
     strip = Image.new("RGBA", (big[0].width, big[0].height * 2))
     for i, idx in enumerate((0, 3, 6, 9)):
         strip.alpha_composite(big[idx], (0, (i % 2) * big[0].height))
+    debug_dir = ROOT / "forge-build"
+    debug_dir.mkdir(exist_ok=True)
     strip.resize((strip.width // 2, strip.height // 2), Image.NEAREST).save(
-        ASSETS / "_debug_strip.png")
+        debug_dir / "showcase-strip.png")
 
     build_tree_sway(use_cache=use_cache)
     build_keyart(use_cache=use_cache)
