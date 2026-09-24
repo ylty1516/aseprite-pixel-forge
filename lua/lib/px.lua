@@ -579,6 +579,7 @@ function px.blit(img, src, x0, y0)
 end
 
 -- 光照：同 ramp 内提升/压低 level（光池/压暗）；sources 距离衰减
+-- source: {x, y, r, strength, falloff, squash}；squash>1 时纵向压扁（地面透视椭圆光池）
 function px.relight(img, index, ramps, sources, opts)
   opts = opts or {}
   local global = opts.shift or 0
@@ -590,7 +591,8 @@ function px.relight(img, index, ramps, sources, opts)
         if info then
           local boost = global
           for _, s in ipairs(sources) do
-            local dx, dy = x - s.x, y - s.y
+            local dx = x - s.x
+            local dy = (y - s.y) * (s.squash or 1.0)
             local d = math.sqrt(dx * dx + dy * dy)
             if d < s.r then
               local f = (1 - d / s.r) ^ (s.falloff or 2.0)
@@ -629,6 +631,40 @@ function px.grade(img, index, ramps, spec, opts)
                 img:putPixel(x, y, px.rampColor(target, info.level + (rule.shift or 0)))
               end
             end
+          end
+        end
+      end
+    end
+  end
+end
+
+-- 光源暖色池：中心近乎实心换色，向外覆盖率递减（有序抖动过渡）
+-- opts: x, y, r, squash(纵向压扁), ramps={ramp名列表}, target, core(中心覆盖率), edge(边缘覆盖率)
+function px.warmPool(img, index, ramps, opts)
+  local r = opts.r or 40
+  local squash = opts.squash or 1.0
+  local target = ramps[opts.target or "stone_warm"]
+  local core = opts.core or 0.78
+  local edge = opts.edge or 0.12
+  local names = {}
+  local any = false
+  for _, n in ipairs(opts.ramps or {}) do
+    names[n] = true
+    any = true
+  end
+  for y = 0, img.height - 1 do
+    for x = 0, img.width - 1 do
+      local dx = x - opts.x
+      local dy = (y - opts.y) * squash
+      local d = math.sqrt(dx * dx + dy * dy)
+      if d < r then
+        local t = 1 - d / r          -- 1 中心 → 0 边缘
+        local p = edge + (core - edge) * (t ^ 0.7)
+        local c = img:getPixel(x, y)
+        local info = index[c]
+        if info and (not any or names[info.ramp]) then
+          if (BAYER4[(y % 4) + 1][(x % 4) + 1] / 16.0) < p then
+            img:putPixel(x, y, px.rampColor(target, info.level))
           end
         end
       end

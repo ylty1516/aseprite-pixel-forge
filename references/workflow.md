@@ -89,7 +89,7 @@ python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135 
 | `ground` | tile 平铺（可多 variant） | tiles={...}/y |
 | `sprite` | 放入素材（底部中心锚） | folder/name/x/y |
 | `grade` | 时段调色（ramp→ramp 抖动交叉） | preset |
-| `light` | 火把光池 + 火焰 + 暖色 | x/y/r/strength/flicker/warm/flame |
+| `light` | 火把光池（芯+晕双源、地面椭圆）+ 火焰 + 暖色池 | x/y/r/core_r/strength/squash/warm_r/flame |
 | `fog` | 大气雾（深度梯度） | ramp/y0/strength |
 | `rays` | 光束（可 ember 色光柱） | x/y/angle/spread/count/strength |
 | `embers` | 余烬/萤火粒子 | count/范围 |
@@ -98,6 +98,9 @@ python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135 
 - **时段系统**：`times = { day = { sky_ramp=, sky_from=, sky_to=, hide={...}, moon_corrupt=, grade=, fog_strength= }, ... }`；
 - **调色预设**：`grades = { bloodmoon = { ["foliage_dark"] = { target="shadow", blend=0.8 }, ... } }`
   （blend 为抖动量，0–1；色板安全，无混色）；
+- **光源写法要点**：`light` 用“内核+光晕”双源（`core_r` 小半径高亮 + `r` 宽半径柔光），
+  `squash>1` 把光池压成地面透视椭圆；暖色由 `warmPool` 单独完成（中心近实心、边缘抖动），
+  不要把整片区域均匀抖向暖色（会产生“闪粉”噪感）。粒子（`embers`）宁少勿多：集中在地面光源附近（每处 3–6 颗）。
 - 所有效果须保持色板合规（forge scene 自动逐帧检查，违规即报错）。
 
 ## 8. 沉淀新配方（让库长大）

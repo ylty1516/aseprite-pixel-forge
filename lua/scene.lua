@@ -67,13 +67,6 @@ local function run()
     return img
   end
 
-  local function dist_filter(cx, cy, r)
-    return function(x, y)
-      local dx, dy = x - cx, y - cy
-      return dx * dx + dy * dy <= r * r
-    end
-  end
-
   local function render_frame(f)
     local phase = (f - 1) / frames * math.pi * 2
     local img = px.newImage(W, H)
@@ -159,24 +152,29 @@ local function run()
         px.grade(img, index, ramps, spec, {})
 
       elseif t == "light" then
+        -- 内核 + 光晕双源：中心亮、边缘柔；squash>1 为地面透视椭圆
         local flick = layer.flicker or 0
-        local strength = (layer.strength or 1.5)
-          * (1 + flick * math.sin(phase * 3 + (layer.phase or 0)))
+        local flick_v = 1 + flick * math.sin(phase * 3 + (layer.phase or 0))
+        local squash = layer.squash or 1.6
+        local strength = layer.strength or 1.0
+        local core_r = layer.core_r or (layer.r or 42) * 0.34
         px.relight(img, index, ramps, {
-          { x = layer.x, y = layer.y, r = layer.r or 40,
-            strength = strength, falloff = layer.falloff or 2 },
+          { x = layer.x, y = layer.y - 2, r = core_r, squash = squash,
+            strength = (layer.core_strength or 0.9) * flick_v, falloff = 2.0 },
+          { x = layer.x, y = layer.y - 2, r = layer.r or 42, squash = squash,
+            strength = strength * flick_v, falloff = layer.falloff or 3.2 },
         }, { shift = layer.shift or 0 })
         if layer.warm then
-          local f = dist_filter(layer.x, layer.y, (layer.r or 40) * (layer.warm_scale or 1.0))
-          local spec = {}
-          for _, rn in ipairs(layer.warm_ramps
-              or { "shadow", "stone", "soil", "stone_warm", "iron", "moss", "foliage_dark" }) do
-            spec[rn] = {
-              target = layer.warm_target or "stone_warm",
-              blend = layer.warm_blend or 0.45, filter = f,
-            }
-          end
-          px.grade(img, index, ramps, spec, {})
+          px.warmPool(img, index, ramps, {
+            x = layer.x, y = layer.y - 2,
+            r = layer.warm_r or (loaded_core_r or 20) * 1.6,
+            squash = squash,
+            target = layer.warm_target or "stone_warm",
+            core = layer.warm_core or (layer.warm_blend or 0.7),
+            edge = layer.warm_core_edge or 0.1,
+            ramps = layer.warm_ramps
+              or { "shadow", "stone", "soil", "stone_warm", "iron", "moss", "foliage_dark" },
+          })
         end
         if layer.flame ~= false then
           local ember = ramps["ember"]

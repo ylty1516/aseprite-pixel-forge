@@ -10,7 +10,7 @@ return {
 
   layers = {
     { type = "sky", ramp = "shadow", from = 1, to = 3 },
-    { type = "stars", count = 110, ymax = 132, ramp = "frost" },
+    { type = "stars", count = 90, ymax = 132, ramp = "frost" },
     { type = "moon", x = 470, y = 64, r = 26, glow = 30, corrupt = true },
 
     { type = "ridge", y = 138, amplitude = 34, ramp = "shadow", level = 2 },
@@ -30,21 +30,25 @@ return {
     -- 时段调色（血月：压暗 + 冷紫，余烬点缀）
     { type = "grade", preset = "bloodmoon" },
 
-    -- 火把光池（在调色之后打光，穿透夜色；闪烁幅度足够可感知）
-    { type = "light", x = 206, y = 222, r = 46, strength = 2.0, falloff = 2.8, flicker = 0.3,
-      warm = true, warm_target = "ember", warm_blend = 0.3, flame = true },
-    { type = "light", x = 428, y = 226, r = 28, strength = 1.4, falloff = 2.8, flicker = 0.38,
-      warm = true, warm_target = "ember", warm_blend = 0.26, flame = true, phase = 1.7 },
+    -- 火把光池：内核亮、边缘柔、地面透视椭圆；暖色仅限芯部
+    { type = "light", x = 206, y = 222, r = 44, core_r = 13, strength = 1.05,
+      core_strength = 0.95, squash = 1.7, falloff = 3.4, flicker = 0.26,
+      warm = true, warm_target = "ember", warm_blend = 0.34, warm_r = 22, flame = true },
+    { type = "light", x = 428, y = 226, r = 27, core_r = 9, strength = 0.85,
+      core_strength = 0.8, squash = 1.7, falloff = 3.4, flicker = 0.32,
+      warm = true, warm_target = "ember", warm_blend = 0.3, warm_r = 15, flame = true, phase = 1.7 },
 
     -- 低层雾（薄）
     { type = "fog", ramp = "frost", y0 = 216, strength = 0.15, baseLevel = 2, levelSpan = 1 },
 
-    -- 血月洒下的血色光束（随闪烁微变）
-    { type = "rays", x = 470, y = 64, angle = 1.72, spread = 0.5, count = 6,
-      length = 260, strength = 0.42, flicker = 0.25, ramp = "ember" },
+    -- 血月洒下的血色光束（淡、宽、微闪）
+    { type = "rays", x = 470, y = 64, angle = 1.72, spread = 0.65, count = 4,
+      length = 240, strength = 0.27, flicker = 0.25, ramp = "ember" },
 
-    -- 余烬粒子
-    { type = "embers", count = 30, x0 = 60, x1 = 620, y0 = 96, y1 = 250 },
+    -- 余烬粒子：只集中在两处火把附近，少量飘散
+    { type = "embers", count = 5, x0 = 178, x1 = 238, y0 = 150, y1 = 240, rise = 34 },
+    { type = "embers", count = 3, x0 = 406, x1 = 452, y0 = 160, y1 = 232, rise = 30 },
+    { type = "embers", count = 2, x0 = 300, x1 = 620, y0 = 70, y1 = 130, rise = 46 },
 
     -- 前景剪影（框景纵深）
     { type = "fg_band", y = 256, amplitude = 5, level = 1, density = 0.92 },
