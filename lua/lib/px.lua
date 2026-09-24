@@ -795,12 +795,17 @@ local function mega_frame(img, ramps, rng, g)
       end
     end
   end
-  -- 顶部平台 + 小吊臂
+  -- 顶部平台 + 小吊臂（顶部信标闪烁）
   local ty = top - 1
   local cx = x + math.floor(w / 2)
   if ty >= 0 then
     for xx = cx - 3, cx + 3 do
       if xx >= 0 and xx < img.width then img:putPixel(xx, ty, c_hi) end
+    end
+    if g.glow then
+      local on = true
+      if g.blink then on = math.sin(g.blink * 2.2 + g.x * 0.37) > 0 end
+      if on and cx >= 0 and cx < img.width then img:putPixel(cx, ty, g.glow) end
     end
   end
 end
@@ -1141,7 +1146,7 @@ local function mega_mast(img, ramps, rng, g)
   for i = 1, th do
     local yy = top - i
     if yy >= 0 and tx >= 0 and tx < img.width then
-      img:putPixel(tx, yy, (i == th) and (g.glow or c_hi) or c)
+      img:putPixel(tx, yy, (i == th) and ((not g.blink or math.sin(g.blink * 2.2 + g.x * 0.37) > 0) and (g.glow or c_hi) or c) or c)
     end
   end
 end
@@ -1396,7 +1401,8 @@ function px.megastructure(img, ramps, rng, opts)
     end
     local top = base - h
     local g = { x = x, w = w, top = top, base = base, ramp = ramp, level = level,
-                flat = opts.flat, glow = glow_color }
+                flat = opts.flat, glow = glow_color,
+                blink = opts.blink and (opts.blink_phase or 0) or nil }
     if style == "frame" then mega_frame(img, ramps, rng, g)
     elseif style == "tank" then mega_tank(img, ramps, rng, g)
     elseif style == "arcology" then mega_arcology(img, ramps, rng, g)
@@ -1732,6 +1738,74 @@ function px.embers(img, ramps, rng, opts)
           img:putPixel(ix, iy + 1, px.rampColor(ramp, math.max(1, lv - 2)))
         end
       end
+    end
+  end
+end
+
+-- 水面倒影（王国式）：镜像上方画面 + 降档变暗 + 抖动混向水色 + 波纹线与粼光
+-- opts: y(水面线), depth, ramp(水色), base_level, tint(混色概率), darken(降档),
+--       wobble, wave_period, phase, sparkle, rng
+function px.water(img, index, ramps, opts)
+  local wy = math.floor(opts.y or (img.height - 30))
+  local depth = math.max(4, math.min(opts.depth or 32, img.height - wy))
+  local wramp = ramps[opts.ramp or "sky"]
+  local base = opts.base_level or 2
+  local tint = opts.tint or 0.5
+  local darken = opts.darken or 1
+  local wobble = opts.wobble or 1.6
+  local period = opts.wave_period or 7
+  local phase = opts.phase or 0
+  -- 先采样（镜像行 + 水平扰动），后写入
+  local src = {}
+  for r = 0, depth - 1 do
+    local row = {}
+    local sy = wy - 1 - r
+    for x = 0, img.width - 1 do
+      if sy >= 0 and sy < img.height then
+        local off = math.floor(math.sin(r * 0.55 + phase) * wobble + 0.5)
+        local sx = math.max(0, math.min(img.width - 1, x + off))
+        row[x] = img:getPixel(sx, sy)
+      else
+        row[x] = nil
+      end
+    end
+    src[r + 1] = row
+  end
+  for r = 0, depth - 1 do
+    local y = wy + r
+    if y < img.height then
+      local t = r / depth
+      local mix_p = tint * (0.3 + 0.7 * t)
+      local wp = px.rampColor(wramp, base + math.floor(t * 2))
+      for x = 0, img.width - 1 do
+        local c = src[r + 1][x]
+        local info = c and index[c]
+        local out
+        if info and px.bayer(x, y) >= mix_p then
+          out = px.rampColor(ramps[info.ramp], info.level - darken)
+        else
+          out = wp
+        end
+        img:putPixel(x, y, out)
+      end
+      -- 波纹线（横向短划线）
+      if period > 0 and (r % period) == math.floor(period / 2) then
+        local lc = px.rampColor(wramp, base + 2)
+        local o = math.floor(math.sin(r * 0.7 + phase) * 6)
+        for x = 0, img.width - 1 do
+          if (x + o) % 5 ~= 0 then img:putPixel(x, y, lc) end
+        end
+      end
+    end
+  end
+  -- 粼光
+  if opts.sparkle ~= false then
+    local rng = opts.rng or px.rng(7)
+    local n = math.floor(img.width * depth / 800)
+    for _ = 1, n do
+      local x = px.rngInt(rng, 0, img.width - 1)
+      local y = px.rngInt(rng, wy, math.min(img.height - 1, wy + depth - 1))
+      img:putPixel(x, y, px.rampColor(wramp, base + 3))
     end
   end
 end

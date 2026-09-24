@@ -96,12 +96,14 @@ python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135 
 | `sprite` | 放入素材（底部中心锚；有 `{name}_f2..` 时自动按相位播放多帧） | folder/name/x/y |
 | `grade` | 时段调色（ramp→ramp 抖动交叉） | preset |
 | `light` | 火把光池（芯+晕双源、地面椭圆）+ 火焰 + 暖色池 | x/y/r/core_r/strength/squash/warm_r/flame |
-| `fog` | 大气雾（深度梯度 / `field` 自定义雾带函数） | ramp/y0/strength/baseLevel/field |
+| `water` | 湖面倒影（王国标志）：镜像上方画面 + 降档变暗 + 抖动混水色 + 波纹线与粼光 | y/depth/ramp/base_level/tint/darken/wobble/wave_period |
+| `fog` | 大气雾（深度梯度 / `field` 自定义雾带函数；`atmo=true` 时随时间换雾色） | ramp/y0/strength/baseLevel/field/atmo |
 | `rays` | 光束（可 ember 色光柱） | x/y/angle/spread/count/strength |
 | `embers` | 余烬/萤火粒子 | count/范围 |
 | `fg_band` | 前景剪影框景 | y/amplitude/density |
 
-- **时段系统**：`times = { day = { sky_ramp=, sky_from=, sky_to=, hide={...}, moon_corrupt=, grade=, fog_strength= }, ... }`；
+- **时段系统**：`times = { day = { sky_ramp=, sky_from=, sky_to=, hide={...}, moon_corrupt=, moon_ramp=, grade=, fog_ramp=, cloud_ramp=, water_ramp=, fog_strength= }, ... }`；
+  同一剪影换天空（王国式）：只需要换天空 ramp / 雾色 / 水色 / 月球色，构图不动；
 - **调色预设**：`grades = { bloodmoon = { ["foliage_dark"] = { target="shadow", blend=0.8 }, ... } }`
   （blend 为抖动量，0–1；色板安全，无混色）；
 - **光源写法要点**：`light` 用“内核+光晕”双源（`core_r` 小半径高亮 + `r` 宽半径柔光），

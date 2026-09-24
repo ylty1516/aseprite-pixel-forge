@@ -28,8 +28,12 @@ Programmatic pixel-art studio for AI agents: drive [Aseprite](https://www.asepri
 
 ![钢铁平原](assets/steel-plains-day.gif)
 
-> 《王国：两位君主》画法：**渐变蓝天 + 单色剪影（三级暗度纵深）+ 暖窗灯点**；
-> 巨构为外露钢骨架（绗架塔/钢拱门/骨架大厅），细节留给观者想象；风吹草簇为原生 4 帧动画。
+| 同一剪影 × 四时段（昼 / 黄昏 / 夜 / 血月） |  |
+|---|---|
+| ![steel times](assets/steel-times.gif) |  |
+
+> 《王国：两位君主》画法：**渐变天空 + 单色剪影（三级暗度纵深）+ 暖窗点/信标闪烁 + 湖面倒影**；
+> 昼/黄昏/夜/血月四时段一键切换（`--time`）；风吹草簇为原生 4 帧动画。
 
 ## 这是什么
 

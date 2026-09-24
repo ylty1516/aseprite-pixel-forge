@@ -395,7 +395,8 @@ def build_keyart(use_cache: bool = True):
 
 
 def build_steel_scene(use_cache: bool = True):
-    """白昼·钢铁巨构平原（远景钢铁巨构 / 中景干草原 / 近景行走地图）。"""
+    """王国画风钢铁平原：白昼动图 + 四时段循环（day/dusk/night/bloodmoon）。"""
+    import shutil as _sh
     out = CACHE / "steel-plains"
     if not (use_cache and (out / "steel-plains-day.aseprite").is_file()):
         r = subprocess.run(
@@ -405,11 +406,32 @@ def build_steel_scene(use_cache: bool = True):
         if r.returncode != 0:
             print(f"⚠ 钢铁平原场景渲染失败：{r.stdout[-200:]}")
             return
-    import shutil as _sh
     for name in ("steel-plains-day.gif", "steel-plains-day.png"):
         src = out / name
         if src.is_file():
             _sh.copyfile(src, ASSETS / name)
+
+    # 四时段循环（每个时段 4 帧）
+    times = ["day", "dusk", "night", "bloodmoon"]
+    cycle = []
+    for t in times:
+        tout = CACHE / f"steel-time-{t}"
+        if not (use_cache and (tout / "steel-plains-day_f4.png").is_file()):
+            r = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "forge.py"), "scene",
+                 str(SCENE_STEEL), "--out", str(tout), "--time", t, "--frames", "4"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace")
+            if r.returncode != 0:
+                print(f"⚠ 时段 {t} 渲染失败：{r.stdout[-160:]}")
+                return
+        fs = [tout / "steel-plains-day.png"]
+        fs += [tout / f"steel-plains-day_f{i}.png" for i in (2, 3, 4)]
+        if all(f.is_file() for f in fs):
+            cycle += [Image.open(f).convert("RGBA") for f in fs]
+    if len(cycle) == 16:
+        save_gif(cycle, ASSETS / "steel-times.gif", duration=240)
+    else:
+        print(f"⚠ 时段循环帧不完整：{len(cycle)}/16")
 
 
 def build_variants_gif():
@@ -501,7 +523,7 @@ def main():
 
     for name in ("hero-scene.gif", "hero-scene.png", "tree-sway.gif",
                  "keyart-bloodmoon.gif", "daynight.gif", "daynight.png",
-                 "steel-plains-day.gif", "steel-plains-day.png",
+                 "steel-plains-day.gif", "steel-plains-day.png", "steel-times.gif",
                  "variants.gif", "evolution.png"):
         p = ASSETS / name
         if p.is_file():

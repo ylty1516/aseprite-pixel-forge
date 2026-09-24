@@ -176,8 +176,12 @@ local function run()
         px.blit(img, s, x, y)
 
       elseif t == "clouds" then
+        local cloud_ramp = layer.ramp
+        if layer.atmo then
+          cloud_ramp = tc.cloud_ramp or tc.fog_ramp or layer.ramp
+        end
         px.clouds(img, ramps, layer_rng(), {
-          ramp = layer.ramp, count = layer.count or 3,
+          ramp = cloud_ramp, count = layer.count or 3,
           y0 = layer.y0, y1 = layer.y1, density = layer.density,
           wmin = layer.wmin, wmax = layer.wmax,
           hmin = layer.hmin, hmax = layer.hmax,
@@ -203,6 +207,17 @@ local function run()
           colossal_scale = layer.colossal_scale,
           colossal_width_scale = layer.colossal_width_scale,
           flat = layer.flat, glow = layer.glow,
+          blink = layer.blink, blink_phase = phase,
+        })
+
+      elseif t == "water" then
+        px.water(img, index, ramps, {
+          y = layer.y, depth = layer.depth,
+          ramp = tc.water_ramp or layer.ramp or "sky",
+          base_level = layer.base_level, tint = layer.tint,
+          darken = layer.darken, wobble = layer.wobble,
+          wave_period = layer.wave_period, sparkle = layer.sparkle,
+          phase = phase, rng = layer_rng(),
         })
 
       elseif t == "viaduct" then
@@ -287,8 +302,10 @@ local function run()
         end
 
       elseif t == "fog" then
+        local fog_ramp = layer.ramp
+        if layer.atmo and tc.fog_ramp then fog_ramp = tc.fog_ramp end
         px.fog(img, index, ramps, {
-          ramp = layer.ramp, y0 = layer.y0,
+          ramp = fog_ramp, y0 = layer.y0,
           strength = tc.fog_strength or layer.strength,
           baseLevel = layer.baseLevel, levelSpan = layer.levelSpan,
           field = layer.field,
