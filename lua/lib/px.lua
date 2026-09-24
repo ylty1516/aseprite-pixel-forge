@@ -710,6 +710,7 @@ local function mega_tower(img, ramps, rng, g)
   local c_body = px.rampColor(g.ramp, g.level)
   local c_hi = px.rampColor(g.ramp, g.level + 1)
   local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  if g.flat then c_hi = c_body; c_lo = c_body end
   local span = math.max(1, base - top)
   local w2 = math.max(4, math.floor(w * 0.72))
   local w3 = math.max(3, math.floor(w * 0.45))
@@ -729,6 +730,9 @@ local function mega_tower(img, ramps, rng, g)
         if step_edge then c = c_hi
         elseif rel == 0 then c = c_hi
         elseif rel == rw - 1 then c = c_lo
+        elseif g.glow and rel > 1 and rel < rw - 2
+          and ((rel * 29 + yy * 53 + win_seed * 7) % 173 == 0) then
+          c = g.glow
         elseif ((yy - top) % 5 <= 1) and rel > 1 and rel < rw - 2
           and ((rel * 2 + yy * 3 + win_seed) % 3 ~= 0) then
           c = c_lo
@@ -764,6 +768,7 @@ local function mega_frame(img, ramps, rng, g)
   local c = px.rampColor(g.ramp, g.level)
   local c_hi = px.rampColor(g.ramp, g.level + 1)
   local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  if g.flat then c_hi = c; c_lo = c end
   local span = math.max(1, base - top)
   local top_w = math.max(3, math.floor(w * 0.2))
   local cell = px.rngInt(rng, 10, 16)
@@ -1095,6 +1100,7 @@ local function mega_mast(img, ramps, rng, g)
   local c = px.rampColor(g.ramp, g.level)
   local c_hi = px.rampColor(g.ramp, g.level + 1)
   local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  if g.flat then c_hi = c; c_lo = c end
   local span = math.max(1, base - top)
   local top_w = 2
   local cell = px.rngInt(rng, 9, 13)
@@ -1135,7 +1141,7 @@ local function mega_mast(img, ramps, rng, g)
   for i = 1, th do
     local yy = top - i
     if yy >= 0 and tx >= 0 and tx < img.width then
-      img:putPixel(tx, yy, (i == th) and c_hi or c)
+      img:putPixel(tx, yy, (i == th) and (g.glow or c_hi) or c)
     end
   end
 end
@@ -1257,6 +1263,7 @@ local function mega_steelhall(img, ramps, rng, g)
   local c = px.rampColor(g.ramp, g.level)
   local c_hi = px.rampColor(g.ramp, g.level + 1)
   local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  if g.flat then c_hi = c; c_lo = c end
   local bay = px.rngInt(rng, 12, 18)
   local roof_h = 4
   local nbay = math.max(1, math.floor(w / bay))
@@ -1294,10 +1301,12 @@ local function mega_steelhall(img, ramps, rng, g)
       if xb >= 0 and xb < img.width then img:putPixel(xb, yy, c_lo) end
     end
   end
-  -- 屋面脊线
+  -- 屋面脊线（+ 稀疏顶部灯）
   if top >= 0 then
     for xx = x, x + w - 1 do
-      if xx >= 0 and xx < img.width then img:putPixel(xx, top, c_hi) end
+      if xx >= 0 and xx < img.width then
+        img:putPixel(xx, top, (g.glow and (xx % 43 == 0)) and g.glow or c_hi)
+      end
     end
   end
 end
@@ -1308,6 +1317,7 @@ local function mega_steelarch(img, ramps, rng, g)
   local c = px.rampColor(g.ramp, g.level)
   local c_hi = px.rampColor(g.ramp, g.level + 1)
   local c_lo = px.rampColor(g.ramp, math.max(1, g.level - 1))
+  if g.flat then c_hi = c; c_lo = c end
   local leg_w = math.max(3, math.floor(w * 0.09))
   local top_band = 4
   -- 两腿（向下外张）
@@ -1365,10 +1375,9 @@ local function mega_steelarch(img, ramps, rng, g)
   end
 end
 
--- 巨构天际线（多形制、可超框、可巨型）
+-- 巨构天际线（多形制、可超框、可巨型；flat=单色剪影，glow=稀疏暖窗点）
 -- opts: x0/x1/y(基线), hmin/hmax, wmin/wmax, gapmin/gapmax, ramp, level,
---       styles = {"tower","frame","tank","arcology","gantry",...},
---       colossal = true + colossal_prob/colossal_scale（顶部超出画框的巨型剪影）
+--       styles = {...}, colossal + colossal_prob/colossal_scale, flat, glow
 function px.megastructure(img, ramps, rng, opts)
   local base = opts.y or math.floor(img.height * 0.6)
   local x = opts.x0 or 0
@@ -1376,6 +1385,7 @@ function px.megastructure(img, ramps, rng, opts)
   local ramp = ramps[opts.ramp or "iron"]
   local level = opts.level or 3
   local styles = opts.styles or { "tower", "tower", "frame", "tank", "arcology", "gantry" }
+  local glow_color = opts.glow and px.rampColor(ramps["ember"], 4) or nil
   while x < x1 do
     local style = styles[px.rngInt(rng, 1, #styles)]
     local w = px.rngInt(rng, opts.wmin or 10, opts.wmax or 24)
@@ -1385,7 +1395,8 @@ function px.megastructure(img, ramps, rng, opts)
       w = math.floor(w * (opts.colossal_width_scale or 1.15))
     end
     local top = base - h
-    local g = { x = x, w = w, top = top, base = base, ramp = ramp, level = level }
+    local g = { x = x, w = w, top = top, base = base, ramp = ramp, level = level,
+                flat = opts.flat, glow = glow_color }
     if style == "frame" then mega_frame(img, ramps, rng, g)
     elseif style == "tank" then mega_tank(img, ramps, rng, g)
     elseif style == "arcology" then mega_arcology(img, ramps, rng, g)
@@ -1398,9 +1409,7 @@ function px.megastructure(img, ramps, rng, opts)
     else mega_tower(img, ramps, rng, g) end
     x = x + w + px.rngInt(rng, opts.gapmin or 6, opts.gapmax or 20)
   end
-end
-
--- 悬索/斜拉索：横跨天际的悬链线（巨构之间的史诗尺度线索）
+end-- 悬索/斜拉索：横跨天际的悬链线（巨构之间的史诗尺度线索）
 function px.mega_cable(img, ramps, opts)
   local c = px.rampColor(ramps[opts.ramp or "iron"], opts.level or 2)
   local x0 = opts.x0 or 0

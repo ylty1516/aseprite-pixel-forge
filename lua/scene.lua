@@ -201,6 +201,8 @@ local function run()
           colossal = layer.colossal,
           colossal_prob = layer.colossal_prob,
           colossal_scale = layer.colossal_scale,
+          colossal_width_scale = layer.colossal_width_scale,
+          flat = layer.flat, glow = layer.glow,
         })
 
       elseif t == "viaduct" then

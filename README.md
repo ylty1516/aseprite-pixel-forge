@@ -24,12 +24,12 @@ Programmatic pixel-art studio for AI agents: drive [Aseprite](https://www.asepri
 |---|---|
 | ![daynight](assets/daynight.gif) | ![variants](assets/variants.gif) |
 
-### 场景示例 2：白昼 · 钢铁巨构平原
+### 场景示例 2：白昼 · 钢铁巨构平原（王国式剪影画风）
 
 ![钢铁平原](assets/steel-plains-day.gif)
 
-> 远景钢铁巨构（骨架楼/天线/塔吊，大气雾压深）/ 中景死亡搁浅式干草原（平滑丘陵 + 沙橄榄调色）/
-> 近景玩家行走地图；风吹草簇为原生 4 帧动画；全部效果调色板内完成（100% 合规）。
+> 《王国：两位君主》画法：**渐变蓝天 + 单色剪影（三级暗度纵深）+ 暖窗灯点**；
+> 巨构为外露钢骨架（绗架塔/钢拱门/骨架大厅），细节留给观者想象；风吹草簇为原生 4 帧动画。
 
 ## 这是什么
 
@@ -130,7 +130,7 @@ style spec ──► gen N 候选 ──► check 数值剪枝 ──► preview
 │   ├── scene.lua               # 场景渲染器（天空/月光/剪影/光池/雾/光束/粒子/时段）
 │   └── recipes/                # 配方：nature×6 + debug/smoke
 ├── scenes/bloodmoon-ruins.lua  # 场景谱示例（《血月废墟》keynote + 5 时段调色）
-├── styles/left-hand-of-god.json# 基准风格规格（哥特暗黑，13 色阶 × 5 阶）
+├── styles/left-hand-of-god.json# 基准风格规格（哥特暗黑，14 色阶 × 5 阶）
 ├── references/                 # 方法论：技法规则 / 规格格式 / 评估 rubric / CLI 手册 / 工作流
 ├── tests/                      # 70 项测试（单测 + Lua 金样 + 集成 + 全变体矩阵 + 打包防护）
 ├── tools/make_showcase.py      # 演示素材构建（按 pack.json 参数重生成动画帧）
