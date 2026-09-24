@@ -53,7 +53,7 @@ python scripts/forge.py export build/tree-r2 --out out/tree --pick 1,3 --sheet
 `tile`（草地/泥路/石板路/石地）· `ruin`（断柱/砖堆/拱残件）· `smoke`（调试小球）
 ——全部可通过 `--param` 固定参数定向生成。
 
-### 帧动画（树的/灌木/花草）
+### 帧动画（树/灌木/花草）
 
 树、灌木、花草配方支持 `frames` 参数输出**多帧动画**（每帧轮廓真实变化）：
 
@@ -72,6 +72,17 @@ python scripts/forge.py export build/tree-anim --out out --pick 1,3 --gif   # �
 在 `lua/recipes/<category>/` 新建配方：声明 `params` + 实现 `generate(ctx)`，
 只用 `ctx.px` 技法库与 style ramps（模板见 `lua/recipes/nature/` 与 references/workflow.md §6）。
 人物建议路线：部件系统（头/身/衣分层）+ 参数化拼装；动画用帧序列参数化生成。
+
+## 场景渲染（光影/叙事/时段）
+
+```bash
+python scripts/forge.py scene scenes/bloodmoon-ruins.lua --out out/keyart --frames 8 --gif
+python scripts/forge.py scene scenes/bloodmoon-ruins.lua --out out/day --time day --frames 1
+```
+
+场景谱（`scenes/*.lua`）是 Lua 表：`{ size, seed, frames, fps, time, layers = {...}, times = {...}, grades = {...} }`。
+图层类型：`sky` / `stars` / `moon` / `ridge` / `treeline` / `ground` / `sprite` / `grade` / `light`（光池+火焰+暖色）/ `fog` / `rays` / `embers` / `fg_band`（前景框景）。
+`times` 定义各时段的天空 ramps、隐藏图层与雾强；`grades` 是调色预设（ramp→ramp 有序抖动交叉，色板安全）。
 
 ## 关键文件
 

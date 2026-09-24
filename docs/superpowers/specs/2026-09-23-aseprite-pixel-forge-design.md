@@ -192,3 +192,14 @@ mask 驱动：配方先构造形状掩码（2D 表），库统一做**明暗/轮
 2. **技法库**：新增 `px.shear`（行级弯曲，根部固定/宽度保持/连通保持）；配方接入：tree=树冠相位摆动、bush=团簇呼吸、flower=叶片弯曲；
 3. **导出**：`forge export --gif` 经 Aseprite 将多帧 `.aseprite` 直接导出循环 GIF；
 4. **复现机制**：`gen --params-file <{seed,params}>` 可将已选定静态候选精确重生成动画版（pack.json 即参数源）。
+
+## 13. v2 场景引擎（2026-09-23）
+
+“史诗叙事感/光影特效”能力落地（`forge scene`）：
+
+1. **px.lua 氛围原语**（均 palette 安全）：`paletteIndex/colorInt`（色板反查，整数键归一）、`relight`（距离光池）、`grade`（ramp→ramp 有序抖动交叉，支持 filter）、`fog`（深度雾）、`stars/moonDisc`（含血月 corrupt）、`ridge/treeline`（剪影）、`rays`（光柱，支持颜色覆盖）、`embers`（粒子）、`blit`；
+2. **lua/scene.lua 渲染器**：13 种图层 + `times` 时段系统（天空/隐藏层/雾/月球色/调色预设）+ 多帧输出（火焰闪烁/星光/火星）；
+3. **场景谱**：`scenes/bloodmoon-ruins.lua`（《血月废墟》keynote，5 时段预设）；
+4. **演示产出**：`assets/keyart-bloodmoon.gif`（8 帧 keynote）、`assets/daynight.gif/.png`（昼夜对比）；
+5. **关键修复**：`getPixel` 返回整数与 style 色板 `{r,g,b,a}` 表键不匹配的隐蔽 bug（导致 grade/relight/fog/clusterJitter 长期静默失效），已由 `colorInt` 归一修复并有 7 条金样回归；scene 素材加载改为以 cel 尺寸为准（修画布≠cel 时的越界白色像素）。
+6. **已知缺口（v2.1 候选）**：图层种类有限（无水面/建筑层）、构图靠手写场景谱（无自动构图）、镜/电/雨雪等高级特效未实现。

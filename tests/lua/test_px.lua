@@ -257,6 +257,47 @@ do
   check("shear-negative-phase", top_x2 ~= nil and top_x2 < 8, "top_x2=" .. tostring(top_x2))
 end
 
+-- ---------- 颜色归一 / 色板反查（回归：table 与整数键不匹配曾导致 grade/relight 静默失效） ----------
+do
+  local fake = {
+    ramps = {
+      a = { { r = 10, g = 10, b = 10, a = 255 }, { r = 20, g = 20, b = 20, a = 255 },
+            { r = 30, g = 30, b = 30, a = 255 } },
+      b = { { r = 200, g = 0, b = 0, a = 255 }, { r = 201, g = 0, b = 0, a = 255 },
+            { r = 202, g = 0, b = 0, a = 255 } },
+    },
+  }
+  local idx = px.paletteIndex(fake)
+  local img = px.newImage(4, 4)
+
+  check("colorInt-table", px.colorInt({ r = 5, g = 6, b = 7, a = 255 })
+    == app.pixelColor.rgba(5, 6, 7, 255))
+  check("colorInt-int", px.colorInt(123) == 123)
+
+  local m = px.canvas(4, 4)
+  px.rect(m, 0, 0, 3, 3)
+  px.flatten(img, m, fake.ramps.a, 2)
+  local c0 = img:getPixel(0, 0)
+  check("paletteIndex-int-key", idx[c0] ~= nil and idx[c0].ramp == "a" and idx[c0].level == 2)
+  check("levelOf-table-color", px.levelOf(fake.ramps.a, c0) == 2)
+
+  -- grade 生效（blend=1 → 全部换成目标 ramp 同 level）
+  px.grade(img, idx, fake.ramps, { a = { target = "b", blend = 1.0 } })
+  check("grade-applies", img:getPixel(0, 0) == app.pixelColor.rgba(201, 0, 0, 255))
+
+  -- relight 生效（中心提升 2 档，clamp 到 3）
+  px.relight(img, idx, fake.ramps, { { x = 0, y = 0, r = 4, strength = 2.0 } }, {})
+  check("relight-applies", img:getPixel(0, 0) == app.pixelColor.rgba(202, 0, 0, 255))
+
+  -- fog 生效（y0=0 strength=1 → 全部覆为雾色）
+  local img2 = px.newImage(2, 2)
+  local m2 = px.canvas(2, 2)
+  px.rect(m2, 0, 0, 1, 1)
+  px.flatten(img2, m2, fake.ramps.a, 1)
+  px.fog(img2, idx, fake.ramps, { ramp = "b", y0 = -10, strength = 1.0, baseLevel = 1, levelSpan = 0 })
+  check("fog-applies", img2:getPixel(0, 0) == app.pixelColor.rgba(200, 0, 0, 255))
+end
+
 -- ---------- jsonEncode ----------
 do
   local s = px.jsonEncode({ok = true, n = 1.5, name = "tree_01"})

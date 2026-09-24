@@ -11,8 +11,18 @@ Programmatic pixel-art studio for AI agents: drive [Aseprite](https://www.asepri
 ![场景演示](assets/hero-scene.gif)
 
 > 《神之左手》哥特暗黑风格 · 全部素材由本项目**程序化生成**（Godot 480×270 规格，2x 展示）。
-> 植物动效为**配方原生多帧动画**（树冠相位摆动/团簇呼吸/叶片弯曲，`frames` 参数），经 Aseprite 导出；
-> 漂浮火星与浆果脉动为场景演示点缀。
+> 植物动效为**配方原生多帧动画**（`frames` 参数），经 Aseprite 导出；漂浮火星与浆果脉动为场景演示点缀。
+
+## 光影与叙事（场景引擎）
+
+![血月废墟](assets/keyart-bloodmoon.gif)
+
+> 《血月废墟》keynote —— `forge scene` 渲染的完整场景：血月/星空/山影树线（视差纵深）/
+> 火把暖光池/大气雾/血色光束/余烬粒子；火焰闪烁与火星均为原生多帧（同 seed 可复现）。
+
+| 昼夜时段调色（同一场景 × 5 时段） | 变体矩阵（6 品类 × 全参数域） |
+|---|---|
+| ![daynight](assets/daynight.gif) | ![variants](assets/variants.gif) |
 
 ## 这是什么
 
@@ -21,14 +31,15 @@ Programmatic pixel-art studio for AI agents: drive [Aseprite](https://www.asepri
 - **style spec（风格规格）**：色板 ramp（暗→亮带色相偏移）、光照方向、轮廓策略、抖动密度——所有生成器服从同一份"美术圣经"，跨品类风格统一
 - **技法库**：Lua 像素技法原语（光照明暗含 AO、选择性轮廓、Bayer 抖动、2×2 簇抖动、边界扰动、点缀、刻线、行级弯曲 shear），全部走注入种子 PRNG——**同 seed 逐字节可复现**
 - **原生多帧动画**：树/灌木/花草支持 `frames` 参数输出多帧 `.aseprite`（每帧轮廓真实变化，非平移假动），可经 `export --gif` 直接产出循环 GIF
+- **场景引擎（光影/叙事）**：`forge scene` + `scenes/*.lua` 场景谱 —— 天空/星空/血月、远山与树线剪影（视差纵深）、火把暖光池、大气雾、光束、余烬粒子、前景框景；**时段调色**（昼夜 5 预设）一键切换氛围；全部效果调色板内安全（100% 合规，无 AA）
 - **质量闭环**：批量生成候选 → 数值质检（色板违规/空图/触边）→ 放大 + 1x 联系表 → 视觉选优（rubric 五维打分）→ 参数进化（`forge evolve`）→ 图集/动图导出
 - **全链路无头**：`aseprite -b --script`，不需要打开 GUI；任何能跑命令行的 agent 都能驱动
 
 ## 画廊
 
-| 树木摆动（原生 6 帧动画，6x） | 变体矩阵（6 品类 × 全参数域） |
+| 树木摆动（原生 6 帧动画，6x） |  |
 |---|---|
-| ![tree sway](assets/tree-sway.gif) | ![variants](assets/variants.gif) |
+| ![tree sway](assets/tree-sway.gif) |  |
 
 | 进化轮（父本 → 子代，参数扰动 + 重掷） |  |
 |---|---|
@@ -66,7 +77,11 @@ python scripts/forge.py export build/tree-anim --out out/tree-anim --sheet --gif
 # 4) 进化一轮（对保留编号做参数扰动）
 python scripts/forge.py evolve build/tree --keep 1,5,9 --out build/tree-r2
 
-# 5) 导出成品（自动裁剪透明边 + 图集 + 源文件 + 可复现清单）
+# 5) 场景（大气光影/叙事构图；--time 切换昼夜时段）
+python scripts/forge.py scene scenes/bloodmoon-ruins.lua --out out/keyart --frames 8 --gif
+python scripts/forge.py scene scenes/bloodmoon-ruins.lua --out out/day --time day --frames 1
+
+# 6) 导出成品（自动裁剪透明边 + 图集 + 源文件 + 可复现清单）
 python scripts/forge.py export build/tree-r2 --out out/tree --pick 1,3 --sheet
 ```
 
@@ -103,9 +118,11 @@ style spec ──► gen N 候选 ──► check 数值剪枝 ──► preview
 ├── SKILL.md                    # agent 入口（Agent Skills 标准）
 ├── scripts/                    # 引擎：forge CLI / Aseprite 执行器 / 风格系统 / 质检 / 导出
 ├── lua/
-│   ├── lib/px.lua              # 技法库（形状/明暗/轮廓/抖动/簇/扰动，确定性）
+│   ├── lib/px.lua              # 技法库（形状/明暗/轮廓/抖动/簇/扰动/剪切/调色/雾/光束，确定性）
 │   ├── gen.lua                 # 生成入口（describe / generate 协议）
+│   ├── scene.lua               # 场景渲染器（天空/月光/剪影/光池/雾/光束/粒子/时段）
 │   └── recipes/                # 配方：nature×6 + debug/smoke
+├── scenes/bloodmoon-ruins.lua  # 场景谱示例（《血月废墟》keynote + 5 时段调色）
 ├── styles/left-hand-of-god.json# 基准风格规格（哥特暗黑，13 色阶 × 5 阶）
 ├── references/                 # 方法论：技法规则 / 规格格式 / 评估 rubric / CLI 手册 / 工作流
 ├── tests/                      # 70 项测试（单测 + Lua 金样 + 集成 + 全变体矩阵 + 打包防护）
@@ -116,7 +133,7 @@ style spec ──► gen N 候选 ──► check 数值剪枝 ──► preview
 ## 诚实的质量说明
 
 - **已达**：自然物 6 类在哥特风格下达到"可直接进项目使用"（1x 可读、风格统一、色板严格 100%、批量确定性）
-- **未达**（相比"商业成品级"的差距，记录在产出包里）：细节层次不如手绘、拱残件造型偏弱、动画覆盖品类有限（岩石/遗迹无动画，人物/建筑尚未开发——v2）、场景级艺术方向仍弱
+- **未达**（相比"商业成品级"的差距，记录在产出包里）：细节层次不如手绘、拱残件造型偏弱、场景引擎为 v0.1（图层类型有限、构图靠手写场景谱）、人物/建筑尚未开发（v2）
 - 与规格的已知偏差与缺口：见 [设计规格 §11](docs/superpowers/specs/2026-09-23-aseprite-pixel-forge-design.md)
 
 ## 测试

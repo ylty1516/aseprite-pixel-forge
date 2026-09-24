@@ -69,7 +69,38 @@ python scripts/forge.py export <build目录> --out <输出目录> --pick 1,5,9 -
 - 把已选定的静态候选转成动画版：从 `pack.json` 提取 `{seed, params}` 写入 params.json，
   然后 `forge gen <recipe> --params-file params.json --param frames=4`。
 
-## 7. 沉淀新配方（让库长大）
+## 7. 场景渲染（大气光影/叙事构图）
+
+```bash
+python scripts/forge.py scene scenes/bloodmoon-ruins.lua --out <目录> --frames 8 --gif
+python scripts/forge.py scene scenes/<场景>.lua --out <目录> --time <时段> --frames 1
+python scripts/forge.py scene scenes/<场景>.lua --out <目录> --size 320x135   # 小尺寸快渲
+```
+
+- 场景谱是 Lua 表（`scenes/*.lua`）：`size/seed/frames/fps/time/layers/times/grades`；
+- **图层类型**（按顺序绘制）：
+
+| 类型 | 作用 | 关键参数 |
+|------|------|----------|
+| `sky` | 抖动渐变天幕 | ramp/from/to |
+| `stars` | 星空（相位闪烁） | count/ymax |
+| `moon` | 月盘 + 抖动光晕 | x/y/r/glow/corrupt（血月） |
+| `ridge` / `treeline` | 远山 / 树线剪影（视差纵深） | y/amplitude/height/level |
+| `ground` | tile 平铺（可多 variant） | tiles={...}/y |
+| `sprite` | 放入素材（底部中心锚） | folder/name/x/y |
+| `grade` | 时段调色（ramp→ramp 抖动交叉） | preset |
+| `light` | 火把光池 + 火焰 + 暖色 | x/y/r/strength/flicker/warm/flame |
+| `fog` | 大气雾（深度梯度） | ramp/y0/strength |
+| `rays` | 光束（可 ember 色光柱） | x/y/angle/spread/count/strength |
+| `embers` | 余烬/萤火粒子 | count/范围 |
+| `fg_band` | 前景剪影框景 | y/amplitude/density |
+
+- **时段系统**：`times = { day = { sky_ramp=, sky_from=, sky_to=, hide={...}, moon_corrupt=, grade=, fog_strength= }, ... }`；
+- **调色预设**：`grades = { bloodmoon = { ["foliage_dark"] = { target="shadow", blend=0.8 }, ... } }`
+  （blend 为抖动量，0–1；色板安全，无混色）；
+- 所有效果须保持色板合规（forge scene 自动逐帧检查，违规即报错）。
+
+## 8. 沉淀新配方（让库长大）
 
 成功的手写绘制代码 → 收敛为 `lua/recipes/<category>/<name>.lua`：
 

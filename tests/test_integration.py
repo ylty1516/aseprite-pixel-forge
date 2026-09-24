@@ -128,6 +128,25 @@ def test_animation_frames_and_gif_export(aseprite_path, tmp_path):
     assert Image.open(gif).n_frames == 4
 
 
+def test_scene_render_palette_and_frames(aseprite_path, tmp_path):
+    """场景渲染：色板 100% 合规（回归：曾因画布≠cel 越界读产生白色像素）+ 帧序列 + 时段变体。"""
+    out = tmp_path / "scene"
+    r = run_forge("scene", "scenes/bloodmoon-ruins.lua", "--out", str(out),
+                  "--frames", "2", "--time", "bloodmoon")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "100%" in r.stdout, r.stdout
+    assert (out / "bloodmoon-ruins.png").is_file()
+    assert (out / "bloodmoon-ruins_f2.png").is_file()
+    assert (out / "bloodmoon-ruins.aseprite").is_file()
+
+    # 时段变体（times 表）：白昼隐藏月亮/火把，色板仍 100%
+    out_day = tmp_path / "scene-day"
+    r = run_forge("scene", "scenes/bloodmoon-ruins.lua", "--out", str(out_day),
+                  "--frames", "1", "--time", "day")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "100%" in r.stdout, r.stdout
+
+
 def test_export_refuses_bad_palette(aseprite_path, tmp_path):
     """构造一个色板违规场景：用只含 2 色的 style 去导出 smoke 图。"""
     thin_style = tmp_path / "thin.json"

@@ -28,10 +28,13 @@ from exporters import export_pngs, export_sheet  # noqa: E402
 from quality import (  # noqa: E402
     contact_sheet, mutate_params, png_metrics, save_manifest,
 )
-from style import StyleError, export_gpl, load_style, write_style_lua  # noqa: E402
+from style import (  # noqa: E402
+    StyleError, check_png_compliance, export_gpl, load_style, write_style_lua,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 GEN_LUA = ROOT / "lua" / "gen.lua"
+SCENE_LUA = ROOT / "lua" / "scene.lua"
 PX_LUA = ROOT / "lua" / "lib" / "px.lua"
 RECIPES = ROOT / "lua" / "recipes"
 SKILL_NAME = "aseprite-pixel-forge"
@@ -527,6 +530,68 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_scene(args) -> int:
+    scene_file = Path(args.scene).resolve()
+    if not scene_file.is_file():
+        raise ForgeError(f"场景谱不存在：{scene_file}")
+    out = Path(args.out).resolve()
+    style_file = (Path(args.style).resolve() if args.style
+                  else ROOT / "styles" / "left-hand-of-god.json")
+    style, style_lua = prepare_style(style_file, out / "_derived")
+    out.mkdir(parents=True, exist_ok=True)
+    pack_dir = (Path(args.pack).resolve() if args.pack
+                else ROOT / "examples" / "gothic-nature-pack")
+
+    params = {
+        "lib": PX_LUA.as_posix(), "style": style_lua.as_posix(),
+        "scene": scene_file.as_posix(), "out": out.as_posix(),
+        "pack": pack_dir.as_posix(),
+    }
+    if args.frames:
+        params["frames"] = args.frames
+    if args.fps:
+        params["fps"] = args.fps
+    if args.time:
+        params["time"] = args.time
+    if args.size:
+        params["size"] = args.size
+
+    print(f"场景 {scene_file.name} 渲染中（帧数 {args.frames or '默认'}，超时 {args.timeout}s）...")
+    res = run_script(SCENE_LUA, params, timeout=args.timeout)
+    forge = res.get("forge")
+    if not forge or not forge.get("ok"):
+        detail = forge.get("error") if forge else (res.get("stderr") or res.get("stdout"))
+        print(f"✗ 场景渲染失败：{str(detail)[-500:]}")
+        return 1
+
+    frames = int(forge.get("frames", 1) or 1)
+    frame_pngs = forge.get("files", {}).get("png_frames") or []
+    bad_total = 0
+    for png in frame_pngs:
+        rep = check_png_compliance(png, style)
+        bad_total += rep["bad"]
+        if not rep["ok"]:
+            print(f"⚠ {Path(png).name} 色板违规 x{rep['bad']}：{rep['bad_colors'][:4]}")
+    size = forge.get("size") or [0, 0]
+    print(f"✓ 场景渲染完成：{forge.get('name')}  {size[0]}x{size[1]}  {frames} 帧")
+    print(f"  帧序列：{Path(frame_pngs[0]).parent if frame_pngs else out}")
+    print(f"  色板合规：{'100%' if bad_total == 0 else f'{bad_total} 个违规像素'}")
+    if bad_total:
+        return 1
+
+    if args.gif and frames > 1:
+        asp = find_aseprite()
+        ase = forge.get("files", {}).get("aseprite")
+        gif_path = out / f"{forge.get('name')}.gif"
+        rr = run_command([str(asp), "-b", str(ase), "--save-as", str(gif_path)])
+        if rr["ok"] and gif_path.is_file():
+            print(f"✓ 动图：{gif_path.relative_to(Path.cwd()) if str(gif_path).startswith(str(Path.cwd())) else gif_path}")
+        else:
+            print(f"⚠ GIF 导出失败：{str(rr.get('stderr', ''))[-160:]}")
+            return 1
+    return 0
+
+
 def cmd_install(args) -> int:
     target = (Path(args.target).expanduser() if args.target
               else Path.home() / ".agents" / "skills" / SKILL_NAME)
@@ -669,6 +734,19 @@ def main(argv=None) -> int:
     p.add_argument("--style")
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("scene", help="场景渲染（大气光影/视差/叙事构图）")
+    p.add_argument("scene", help="场景谱路径（scenes/*.lua）")
+    p.add_argument("--out", required=True)
+    p.add_argument("--style")
+    p.add_argument("--pack", help="素材包目录（默认 examples/gothic-nature-pack）")
+    p.add_argument("--frames", type=int)
+    p.add_argument("--fps", type=int)
+    p.add_argument("--time", help="调色预设（day/dawn/dusk/night/bloodmoon...）")
+    p.add_argument("--size", help="覆盖画布尺寸 WxH（测试用小尺寸）")
+    p.add_argument("--gif", action="store_true")
+    p.add_argument("--timeout", type=int, default=600)
+    p.set_defaults(func=cmd_scene)
 
     p = sub.add_parser("install", help="安装为全局 skill")
     p.add_argument("--target")

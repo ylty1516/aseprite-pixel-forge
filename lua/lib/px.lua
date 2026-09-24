@@ -247,8 +247,9 @@ function px.rampColor(ramp, level)
 end
 
 function px.levelOf(ramp, color)
+  local key = px.colorInt(color)
   for i, c in ipairs(ramp) do
-    if c == color then return i end
+    if px.colorInt(c) == key then return i end
   end
   return nil
 end
@@ -397,6 +398,11 @@ local BAYER4 = {
   {15, 7, 13, 5},
 }
 
+-- Bayer 4×4 阈值（0..1）供外部抖动使用
+function px.bayer(x, y)
+  return BAYER4[(y % 4) + 1][(x % 4) + 1] / 16.0
+end
+
 -- 双色 Bayer 抖动填充（密度 0→全 A，1→全 B）
 function px.ditherFill(img, m, ramp, levelA, levelB, opts)
   opts = opts or {}
@@ -537,6 +543,345 @@ function px.shear(img, m, opts)
     end
   end
   return out, om
+end
+
+-- ============================================================ 场景氛围（调色/光照/大气）
+
+-- 颜色归一：table {r,g,b,a} → 整数；整数原样返回
+function px.colorInt(c)
+  if type(c) == "table" then
+    return app.pixelColor.rgba(c.r, c.g, c.b, c.a or 255)
+  end
+  return c
+end
+
+-- 色板反查表：color(整数) → {ramp=名, level=序号}
+function px.paletteIndex(style)
+  local index = {}
+  for name, ramp in pairs(style.ramps) do
+    for i, c in ipairs(ramp) do
+      index[px.colorInt(c)] = { ramp = name, level = i }
+    end
+  end
+  return index
+end
+
+-- 直拷带透明像素的小图（素材拼贴）
+function px.blit(img, src, x0, y0)
+  for y = 0, src.height - 1 do
+    for x = 0, src.width - 1 do
+      local c = src:getPixel(x, y)
+      if app.pixelColor.rgbaA(c) > 0 then
+        img:putPixel(x0 + x, y0 + y, c)
+      end
+    end
+  end
+end
+
+-- 光照：同 ramp 内提升/压低 level（光池/压暗）；sources 距离衰减
+function px.relight(img, index, ramps, sources, opts)
+  opts = opts or {}
+  local global = opts.shift or 0
+  for y = 0, img.height - 1 do
+    for x = 0, img.width - 1 do
+      local c = img:getPixel(x, y)
+      if app.pixelColor.rgbaA(c) > 0 then
+        local info = index[c]
+        if info then
+          local boost = global
+          for _, s in ipairs(sources) do
+            local dx, dy = x - s.x, y - s.y
+            local d = math.sqrt(dx * dx + dy * dy)
+            if d < s.r then
+              local f = (1 - d / s.r) ^ (s.falloff or 2.0)
+              boost = boost + (s.strength or 1.0) * f
+            end
+          end
+          local lv = info.level + math.floor(boost + (boost >= 0 and 0.5 or -0.5))
+          if lv ~= info.level then
+            img:putPixel(x, y, px.rampColor(ramps[info.ramp], lv))
+          end
+        end
+      end
+    end
+  end
+end
+
+-- 调色：ramp→ramp 有序抖动交叉（palette 安全），支持 filter 与 level 平移
+-- spec: { ["rampName"] = {target=, blend=0..1, shift=, filter=function(x,y)} }
+function px.grade(img, index, ramps, spec, opts)
+  for y = 0, img.height - 1 do
+    for x = 0, img.width - 1 do
+      local c = img:getPixel(x, y)
+      if app.pixelColor.rgbaA(c) > 0 then
+        local info = index[c]
+        if info then
+          local rule = spec[info.ramp]
+          if rule and (not rule.filter or rule.filter(x, y)) then
+            local target = ramps[rule.target]
+            if target then
+              local b = rule.blend or 1.0
+              local take = b >= 1.0
+              if not take and b > 0 then
+                take = (BAYER4[(y % 4) + 1][(x % 4) + 1] / 16.0) < b
+              end
+              if take then
+                img:putPixel(x, y, px.rampColor(target, info.level + (rule.shift or 0)))
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+-- 大气雾：从 y0 向上按深度梯度混向雾 ramp（有序抖动）；field 可完全自定义
+function px.fog(img, index, ramps, opts)
+  local ramp = ramps[opts.ramp or "frost"]
+  local y0 = opts.y0 or img.height * 0.5
+  local strength = opts.strength or 0.7
+  local field = opts.field
+  local level0 = opts.baseLevel or 3
+  local levelSpan = opts.levelSpan or 2
+  for y = 0, img.height - 1 do
+    for x = 0, img.width - 1 do
+      local c = img:getPixel(x, y)
+      if app.pixelColor.rgbaA(c) > 0 and index[c] then
+        local t
+        if field then t = field(x, y)
+        else t = math.max(0, (y - y0) / math.max(1, img.height - y0)) end
+        t = t * strength
+        if t > 0 and (BAYER4[(y % 4) + 1][(x % 4) + 1] / 16.0) < t then
+          img:putPixel(x, y, px.rampColor(ramp, level0 + math.floor(t * levelSpan + 0.5)))
+        end
+      end
+    end
+  end
+end
+
+-- 星空（含相位闪烁；同 seed 基础分布不变）
+function px.stars(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "frost"]
+  local ymax = opts.ymax or img.height * 0.5
+  local count = opts.count or 60
+  local levels = opts.levels or { 3, 4, 5 }
+  local phase = opts.phase or 0
+  for i = 1, count do
+    local x = px.rngInt(rng, 0, img.width - 1)
+    local y = px.rngInt(rng, 0, math.max(0, math.floor(ymax)))
+    local lv = px.pick(rng, levels)
+    local tw = math.sin(phase * 3 + i * 1.7)   -- 3 个周期/循环：无缝且帧间可见
+    if tw > -0.3 then
+      img:putPixel(x, y, px.rampColor(ramp, lv))
+      if lv >= 4 and rng() < 0.1 and x + 1 < img.width then
+        img:putPixel(x + 1, y, ramp[3])
+      end
+    end
+  end
+end
+
+-- 月盘（含抖动光晕；corrupt=true 时渐染为余烬色 = 血月）
+function px.moonDisc(img, index, ramps, cx, cy, r, opts)
+  opts = opts or {}
+  local ramp = ramps[opts.ramp or "frost"]
+  local glowRamp = ramps[opts.glowRamp or (opts.corrupt and "ember" or opts.ramp or "frost")]
+  local glow = opts.glow or math.floor(r * 1.6)
+  local corrupt = opts.corrupt
+  local rng = opts.rng or px.rng(1)
+  -- 光晕：对天空像素提亮（抖动环，幂衰减）
+  for y = math.floor(cy - r - glow), math.ceil(cy + r + glow) do
+    for x = math.floor(cx - r - glow), math.ceil(cx + r + glow) do
+      if x >= 0 and y >= 0 and x < img.width and y < img.height then
+        local dx, dy = x - cx, y - cy
+        local d = math.sqrt(dx * dx + dy * dy)
+        if d > r and d < r + glow then
+          local t = 1 - (d - r) / glow
+          t = t ^ 1.4
+          local c = img:getPixel(x, y)
+          local info = index[c]
+          if info and (BAYER4[(y % 4) + 1][(x % 4) + 1] / 16.0) < math.min(0.7, t * 1.1) then
+            local src_ramp = corrupt and glowRamp or ramps[info.ramp]
+            local boost = t > 0.55 and 2 or 1
+            local base_level = corrupt and math.min(2, info.level) or info.level
+            img:putPixel(x, y, px.rampColor(src_ramp, base_level + boost))
+          end
+        end
+      end
+    end
+  end
+  -- 月体：外环 4、内盘 5、陨坑 3（corrupt = 余烬色血月）
+  local body_ramp = corrupt and ramps["ember"] or ramp
+  for y = math.floor(cy - r), math.ceil(cy + r) do
+    for x = math.floor(cx - r), math.ceil(cx + r) do
+      if x >= 0 and y >= 0 and x < img.width and y < img.height then
+        local dx, dy = x - cx, y - cy
+        local d = math.sqrt(dx * dx + dy * dy)
+        if d <= r then
+          local lv = d > r * 0.82 and 4 or 5
+          img:putPixel(x, y, px.rampColor(body_ramp, lv))
+        end
+      end
+    end
+  end
+  local craters = math.floor(r * 0.8)
+  for _ = 1, craters do
+    local ang = rng() * math.pi * 2
+    local dist = rng() * r * 0.75
+    local hx = math.floor(cx + math.cos(ang) * dist)
+    local hy = math.floor(cy + math.sin(ang) * dist * 0.9)
+    if hx >= 0 and hy >= 0 and hx < img.width and hy < img.height then
+      img:putPixel(hx, hy, body_ramp[3])
+      if rng() < 0.4 then img:putPixel(hx + 1, hy, body_ramp[3]) end
+    end
+  end
+end
+
+-- 远景山脊剪影（中点位移）。only_empty=true 不覆盖已有像素
+function px.ridge(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "shadow"]
+  local level = opts.level or 2
+  local base = opts.y or img.height * 0.5
+  local amp = opts.amplitude or 20
+  local w = img.width
+  local pts = { [0] = base + (rng() - 0.5) * amp, [w - 1] = base + (rng() - 0.5) * amp }
+  local function subdivide(x0, x1)
+    if x1 - x0 <= 1 then return end
+    local mid = math.floor((x0 + x1) / 2)
+    pts[mid] = (pts[x0] + pts[x1]) / 2 + (rng() - 0.5) * amp * 0.55
+    subdivide(x0, mid)
+    subdivide(mid, x1)
+  end
+  subdivide(0, w - 1)
+  local color = px.rampColor(ramp, level)
+  local color_hi = px.rampColor(ramp, level + 1)
+  for x = 0, w - 1 do
+    local top = math.floor(pts[x] or base)
+    for y = top, img.height - 1 do
+      if (not opts.only_empty) or app.pixelColor.rgbaA(img:getPixel(x, y)) == 0 then
+        -- 脊线一对像素略亮，制造体积感
+        img:putPixel(x, y, (y <= top + 1 and rng() < 0.5) and color_hi or color)
+      end
+    end
+  end
+end
+
+-- 远树线剪影（丛生起伏的针叶/阔叶混排，低矮蓬松）
+function px.treeline(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "shadow"]
+  local level = opts.level or 2
+  local base = opts.y or img.height * 0.5
+  local height = opts.height or 14
+  local color = px.rampColor(ramp, level)
+  local x = 0
+  while x < img.width do
+    local th = height * px.rngRange(rng, 0.45, 1.15)
+    local tw = px.rngInt(rng, 5, 11)
+    local cx = x + tw / 2
+    local conifer = rng() < 0.55
+    for iy = 0, math.floor(th) do
+      local yy = math.floor(base - iy)
+      if yy >= 0 and yy < img.height then
+        local half
+        if conifer then
+          -- 针叶：微凹的三角形（底宽顶窄），带 1px 摇摆
+          local k = iy / math.max(1, th)
+          half = (tw / 2) * (0.55 + 0.45 * (1 - k)) * math.sqrt(math.max(0.05, 1 - k * k * 0.6))
+        else
+          local k = iy / math.max(1, th)
+          half = (tw / 2) * math.sqrt(math.max(0, 1 - k * k))
+        end
+        local wob = (rng() - 0.5) * 1.2
+        for ix = math.floor(cx - half + wob), math.ceil(cx + half + wob) do
+          if ix >= 0 and ix < img.width
+            and ((not opts.only_empty) or app.pixelColor.rgbaA(img:getPixel(ix, yy)) == 0) then
+            img:putPixel(ix, yy, color)
+          end
+        end
+      end
+    end
+    x = x + math.floor(tw * 0.55) + px.rngInt(rng, 0, 2)  -- 树冠重叠成丛
+  end
+  -- 基线填充
+  for xx = 0, img.width - 1 do
+    for yy = math.floor(base), img.height - 1 do
+      if (not opts.only_empty) or app.pixelColor.rgbaA(img:getPixel(xx, yy)) == 0 then
+        img:putPixel(xx, yy, color)
+      end
+    end
+  end
+end
+
+-- 光束：从 (x,y) 向 angle 方向发散 count 条，交错抖动 + 距离衰减
+-- opts.ramp 指定时直接铺该 ramp 色（如 ember 血色光柱）；否则对原像素提亮一阶
+function px.rays(img, index, ramps, rng, opts)
+  local count = opts.count or 4
+  local base = opts.angle or (math.pi / 2)
+  local spread = opts.spread or 0.5
+  local length = opts.length or img.height
+  local strength = opts.strength or 0.5
+  local step = opts.step or 3
+  local override = opts.ramp and ramps[opts.ramp]
+  for i = 1, count do
+    local a = base + px.rngRange(rng, -spread, spread)
+    local width = px.rngRange(rng, 1.5, 4.0)
+    local steps = math.floor(length / step)
+    for s = 1, steps do
+      local d = s * step
+      local cx = opts.x + math.cos(a) * d
+      local cy = opts.y + math.sin(a) * d
+      local fade = strength * (1 - s / steps) * px.rngRange(rng, 0.75, 1.25)
+      local w_ = width + d * 0.03
+      for o = -w_, w_, 0.9 do
+        local rx = math.floor(cx + math.cos(a + math.pi / 2) * o)
+        local ry = math.floor(cy + math.sin(a + math.pi / 2) * o)
+        if rx >= 0 and ry >= 0 and rx < img.width and ry < img.height then
+          local c = img:getPixel(rx, ry)
+          local info = index[c]
+          if info and (BAYER4[(ry % 4) + 1][(rx % 4) + 1] / 16.0) < math.min(0.9, fade) then
+            if override then
+              img:putPixel(rx, ry, px.rampColor(override, 1 + math.floor(math.min(0.95, fade) * 3.5)))
+            else
+              img:putPixel(rx, ry, px.rampColor(ramps[info.ramp], info.level + 1))
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+-- 余烬/萤火粒子（烘入画面；同 seed 同分布，相位推进运动）
+function px.embers(img, ramps, rng, opts)
+  local ramp = ramps[opts.ramp or "ember"]
+  local index = opts.index
+  local count = opts.count or 20
+  local x0, x1 = opts.x0 or 0, opts.x1 or img.width
+  local y0, y1 = opts.y0 or 0, opts.y1 or img.height
+  local phase = opts.phase or 0
+  local rise = opts.rise or 46
+  for i = 1, count do
+    local bx = px.rngRange(rng, x0, x1)
+    local by = px.rngRange(rng, y0, y1)
+    local sp = px.rngRange(rng, 0.5, 1.2)
+    local drift = px.rngRange(rng, -0.5, 0.5)
+    local prog = ((phase / (2 * math.pi)) + i * 0.137) % 1.0
+    local ix = math.floor(bx + math.sin(phase + i) * 3 + drift * prog * 12)
+    local iy = math.floor(by - prog * rise * sp)
+    local bright = math.sin(prog * math.pi)
+    if bright > 0.15 and ix >= 0 and iy >= 0 and ix < img.width and iy < img.height then
+      local lv = (bright > 0.75) and 5 or ((bright > 0.42) and 4 or 3)
+      img:putPixel(ix, iy, px.rampColor(ramp, lv))
+      -- 主粒下方一点残晖
+      if bright > 0.6 and iy + 1 < img.height then
+        local below = img:getPixel(ix, iy + 1)
+        local info2 = index and index[below]
+        if info2 and info2.ramp == opts.ramp then
+          img:putPixel(ix, iy + 1, px.rampColor(ramp, math.max(1, lv - 2)))
+        end
+      end
+    end
+  end
 end
 
 -- ============================================================ Image / 保存

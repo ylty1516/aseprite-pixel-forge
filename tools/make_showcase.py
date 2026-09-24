@@ -50,6 +50,7 @@ SPRITE_FRAMES = 4    # 场景内动画素材帧数（12 % 4 == 0 保证无缝循
 
 FOLDER_RECIPE = {"trees": "tree", "bushes": "bush", "rocks": "rock",
                  "flowers": "flower", "tiles": "tile", "ruins": "ruin"}
+SCENE = ROOT / "scenes" / "bloodmoon-ruins.lua"
 
 
 # ---------------------------------------------------------------- 字体 / 载入
@@ -342,6 +343,56 @@ def build_tree_sway(use_cache=True):
     save_gif(canvas, ASSETS / "tree-sway.gif", duration=150)
 
 
+def build_keyart(use_cache: bool = True):
+    """血月废墟 keynote 动画 + 昼夜调色对比（forge scene）。"""
+
+    def run_scene(out: Path, time=None, frames=8, make_gif=False):
+        if use_cache and (out / "bloodmoon-ruins.aseprite").is_file():
+            return out
+        args = [sys.executable, str(ROOT / "scripts" / "forge.py"), "scene",
+                str(SCENE), "--out", str(out), "--frames", str(frames)]
+        if time:
+            args += ["--time", time]
+        if make_gif:
+            args += ["--gif"]
+        r = subprocess.run(args, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
+        if r.returncode != 0:
+            print(f"⚠ 场景渲染失败（{time or 'bloodmoon'}）：{r.stdout[-200:]}")
+            return None
+        return out
+
+    # 1) 血月 keynote（8 帧动画）
+    out = run_scene(CACHE / "keyart-bloodmoon", frames=8, make_gif=True)
+    if out and (out / "bloodmoon-ruins.gif").is_file():
+        import shutil as _sh
+        _sh.copyfile(out / "bloodmoon-ruins.gif", ASSETS / "keyart-bloodmoon.gif")
+
+    # 2) 昼夜时段对比
+    times = ["day", "dawn", "dusk", "night", "bloodmoon"]
+    labels = ["Day 白昼", "Dawn 黎明", "Dusk 黄昏", "Night 深夜", "Bloodmoon 血月"]
+    imgs = []
+    for t in times:
+        o = run_scene(CACHE / f"daynight-{t}", time=t, frames=1)
+        p = o / "bloodmoon-ruins.png" if o else None
+        imgs.append(Image.open(p).convert("RGB") if p and p.is_file() else None)
+    if all(imgs):
+        save_gif([im.convert("RGBA") for im in imgs], ASSETS / "daynight.gif",
+                 duration=750)
+        sc = 0.5
+        w, h = imgs[0].size
+        sw, sh = int(w * sc), int(h * sc)
+        lab_h = 26
+        strip = Image.new("RGB", (sw * len(times), sh + lab_h), BG)
+        d = ImageDraw.Draw(strip)
+        for i, (im, lab) in enumerate(zip(imgs, labels)):
+            strip.paste(im.resize((sw, sh), Image.LANCZOS), (i * sw, lab_h))
+        if HAS_CJK:
+            for i, lab in enumerate(labels):
+                d.text((i * sw + 8, 3), lab, fill=(235, 233, 240), font=FONT_18)
+        strip.save(ASSETS / "daynight.png")
+
+
 def build_variants_gif():
     categories = [
         ("trees", "Trees 树木", 3), ("bushes", "Bushes 灌木", 3),
@@ -422,13 +473,18 @@ def main():
         ASSETS / "_debug_strip.png")
 
     build_tree_sway(use_cache=use_cache)
+    build_keyart(use_cache=use_cache)
     build_variants_gif()
     build_evolution_png()
 
     for name in ("hero-scene.gif", "hero-scene.png", "tree-sway.gif",
+                 "keyart-bloodmoon.gif", "daynight.gif", "daynight.png",
                  "variants.gif", "evolution.png"):
         p = ASSETS / name
-        print(f"✓ {p.relative_to(ROOT)}  {p.stat().st_size // 1024} KB")
+        if p.is_file():
+            print(f"✓ {p.relative_to(ROOT)}  {p.stat().st_size // 1024} KB")
+        else:
+            print(f"⚠ {p.relative_to(ROOT)} 未生成")
 
 
 if __name__ == "__main__":
